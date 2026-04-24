@@ -59,7 +59,6 @@ const DEFAULT_PERSONAL = {
 export const PERSONAL_FIELD_ORDER = [
   'full_name',
   'job_title',
-  'summary_line',
   'location',
   'email',
   'phone',

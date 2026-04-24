@@ -41,12 +41,12 @@ export default function App() {
       <TopBar onImportParsed={(r) => setPendingImport(r)}/>
       <div className="flex-1 flex min-h-0">
         <Sidebar/>
-        <Divider/>
+        {/* <Divider/> */}
         {/* Editor pane — 50% of remaining width */}
         <div className="flex flex-col min-h-0 bg-ink-900" style={{ width: '50%', minWidth: 480 }}>
           <Panel/>
         </div>
-        <Divider/>
+        {/* <Divider/> */}
         {/* Preview pane — 50% of remaining width */}
         <div className="flex-1 flex flex-col min-h-0" style={{ minWidth: 480 }}>
           <PdfPreview/>

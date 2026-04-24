@@ -10,6 +10,10 @@ const PERSONAL_CONTACT_FIELDS = [
   'location', 'email', 'phone', 'website', 'linkedin', 'github', 'wechat', 'qq',
 ]
 
+/** * 已注释：这是第一个 Person Detail 模块的定义
+ * 因为现在统一使用 ModuleList 里的动态模块，所以不再需要这个静态组件
+ */
+/*
 function PersonDetailModule() {
   const t = useT()
   const personal = useResumeStore((s) => s.resume.personal)
@@ -31,7 +35,7 @@ function PersonDetailModule() {
   const setField = (field, value) => updatePersonal({ [field]: value })
 
   return (
-    <div className="card overflow-hidden">
+    <div className="overflow-hidden bg-zinc-900/50 rounded-lg">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-cyan-400/5">
         <User size={14} className="text-cyan-400"/>
         <div className="text-[11px] font-semibold text-zinc-100 uppercase tracking-[0.18em]">
@@ -70,6 +74,7 @@ function PersonDetailModule() {
     </div>
   )
 }
+*/
 
 function JobMatchPanel() {
   const t = useT()
@@ -174,9 +179,14 @@ export default function ContentPanel() {
   const t = useT()
   return (
     <div className="h-full overflow-y-auto p-5 flex flex-col gap-4">
-      <PersonDetailModule/>
-      <JobMatchPanel/>
-      <div className="panel-title pt-2">{t('section.sections')}</div>
+      {/* 已注释：删掉重复展示的第一个 Person Detail */}
+      {/* <PersonDetailModule/> */}
+
+      {/* <JobMatchPanel/> */}
+      
+      {/* <div className="panel-title pt-2">{t('section.sections')}</div>
+       */}
+      {/* 保留下方 ModuleList 里的 Person Detail */}
       <ModuleList/>
     </div>
   )

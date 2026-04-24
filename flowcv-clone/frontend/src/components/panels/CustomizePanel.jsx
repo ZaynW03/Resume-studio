@@ -439,7 +439,7 @@ export default function CustomizePanel() {
     <div className="h-full overflow-y-auto p-5 flex flex-col gap-4 app-scrollbar">
 
       {/* ── MODULE I: TEMPLATE ── */}
-      <ModuleSection icon={LayoutTemplate} label="I · Template">
+      <ModuleSection icon={LayoutTemplate} label="Template">
         <TemplateCarousel
           current={c.template}
           onApply={(t) => update({ template: t })}
@@ -447,7 +447,7 @@ export default function CustomizePanel() {
       </ModuleSection>
 
       {/* ── MODULE II: LAYOUT & SPACING ── */}
-      <ModuleSection icon={Rows3} label="II · Layout & Spacing">
+      <ModuleSection icon={Rows3} label="Layout & Spacing">
 
         {/* 1 · Columns */}
         <SubSection label="Columns">

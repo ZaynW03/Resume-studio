@@ -27,7 +27,7 @@ const STRINGS = {
     'preview.ex_libris':   'ex libris · compiled in',
     'preview.diagnostics': 'Check diagnostics',
     // Content / Profile
-    'section.sections':    'Sections',
+    'section.sections':    'Sections',//删掉
     'section.personal':    'Personal details',
     'personal.edit_in_profile': 'Edit in Profile',
     'personal.empty_hint': 'No personal details yet. Fill them in under Profile, then sync to this resume.',
@@ -137,7 +137,7 @@ const STRINGS = {
     'preview.end':         '— 完 —',
     'preview.ex_libris':   '藏书 · 版式',
     'preview.diagnostics': '查看诊断',
-    'section.sections':    '模块',
+    'section.sections':    '模块',//删掉
     'section.personal':    '个人信息',
     'personal.edit_in_profile': '在个人库中编辑',
     'personal.empty_hint': '尚未填写个人信息。请先在"个人库"中填写，再同步到当前简历。',
