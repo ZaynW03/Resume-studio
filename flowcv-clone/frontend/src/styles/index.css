@@ -61,12 +61,6 @@
     border-radius: 8px;
     position: relative;
   }
-  .card::before {
-    content: '';
-    position: absolute; top: 0; left: 12px; right: 12px; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.4), transparent);
-    pointer-events: none;
-  }
   .btn-primary {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
            bg-gradient-to-b from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400

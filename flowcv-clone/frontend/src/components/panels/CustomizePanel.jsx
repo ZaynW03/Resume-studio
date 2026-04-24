@@ -17,6 +17,8 @@ import { CSS } from '@dnd-kit/utilities'
 const TEMPLATES = [
   { id: 'flowcv-style', name: 'FlowCV',  desc: 'Two-column · icon headings' },
   { id: 'classic',      name: 'Classic', desc: 'Single column · traditional' },
+  { id: 'minimal',      name: 'Minimal', desc: 'Clean · no color · compact'  },
+  { id: 'sidebar',      name: 'Sidebar', desc: 'Colored sidebar · modern'    },
 ]
 
 const FONT_SIZES   = [9, 9.5, 10, 10.5, 11, 11.5, 12]
@@ -36,11 +38,10 @@ const TB_MARGINS = [
 ]
 const ENTRY_SPACINGS = [4, 6, 8, 10, 12, 16]
 
-const ALIGN_OPTS = [
-  { id: 'left',   label: 'Left'   },
-  { id: 'center', label: 'Center' },
-  { id: 'right',  label: 'Right'  },
-  { id: 'inline', label: 'Inline' },
+const ENTRY_LAYOUTS = [
+  { id: 'inline',    label: 'Inline'    },
+  { id: 'left-col',  label: 'Left col'  },
+  { id: 'right-col', label: 'Right col' },
 ]
 
 const TITLE_SIZES    = [10, 11, 12, 13, 14]
@@ -182,8 +183,91 @@ function ClassicThumb() {
   )
 }
 
+function MinimalThumb() {
+  return (
+    <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="100" height="130" fill="white" />
+      {/* Centered name block */}
+      <rect x="18" y="8"  width="64" height="6"   rx="1"   fill="#111827" />
+      <rect x="28" y="17" width="44" height="2.5" rx="0.5" fill="#6b7280" />
+      <rect x="10" y="22" width="80" height="0.5" rx="0.25" fill="#d1d5db" />
+      {/* Section 1 — thin rule, small heading */}
+      <rect x="10" y="28" width="20" height="2" rx="0.5" fill="#374151" />
+      <rect x="10" y="31" width="80" height="0.4" fill="#e5e7eb" />
+      <rect x="10" y="35" width="80" height="1.8" rx="0.5" fill="#374151" />
+      <rect x="10" y="39" width="70" height="1.4" rx="0.5" fill="#9ca3af" />
+      <rect x="10" y="43" width="74" height="1.4" rx="0.5" fill="#9ca3af" />
+      {/* Section 2 */}
+      <rect x="10" y="51" width="28" height="2" rx="0.5" fill="#374151" />
+      <rect x="10" y="54" width="80" height="0.4" fill="#e5e7eb" />
+      <rect x="10" y="58" width="80" height="1.8" rx="0.5" fill="#374151" />
+      <rect x="10" y="62" width="68" height="1.4" rx="0.5" fill="#9ca3af" />
+      <rect x="10" y="66" width="72" height="1.4" rx="0.5" fill="#9ca3af" />
+      <rect x="10" y="72" width="80" height="1.8" rx="0.5" fill="#374151" />
+      <rect x="10" y="76" width="62" height="1.4" rx="0.5" fill="#9ca3af" />
+      {/* Section 3 */}
+      <rect x="10" y="84" width="18" height="2" rx="0.5" fill="#374151" />
+      <rect x="10" y="87" width="80" height="0.4" fill="#e5e7eb" />
+      <rect x="10" y="91" width="80" height="1.8" rx="0.5" fill="#374151" />
+      <rect x="10" y="95" width="74" height="1.4" rx="0.5" fill="#9ca3af" />
+    </svg>
+  )
+}
+
+function SidebarThumb() {
+  return (
+    <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="100" height="130" fill="white" />
+      {/* Sidebar background */}
+      <rect x="0" y="0" width="32" height="130" fill="#1e3a5f" />
+      {/* Sidebar: name at top */}
+      <rect x="4" y="8"  width="24" height="3.5" rx="0.5" fill="white" opacity="0.9" />
+      <rect x="4" y="14" width="18" height="2"   rx="0.5" fill="white" opacity="0.5" />
+      {/* Sidebar divider */}
+      <rect x="4" y="19" width="24" height="0.5" fill="white" opacity="0.2" />
+      {/* Sidebar: contact section */}
+      <rect x="4" y="22" width="14" height="1.8" rx="0.5" fill="white" opacity="0.6" />
+      <rect x="4" y="26" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      <rect x="4" y="29" width="20" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      <rect x="4" y="32" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      {/* Sidebar: skills section */}
+      <rect x="4" y="38" width="12" height="1.8" rx="0.5" fill="white" opacity="0.6" />
+      <rect x="4" y="41" width="0.5" height="16" fill="white" opacity="0.2" />
+      <rect x="4" y="42" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      <rect x="4" y="45" width="18" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      <rect x="4" y="48" width="24" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      <rect x="4" y="51" width="20" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      {/* Sidebar: education */}
+      <rect x="4" y="58" width="18" height="1.8" rx="0.5" fill="white" opacity="0.6" />
+      <rect x="4" y="62" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      <rect x="4" y="65" width="18" height="1.3" rx="0.5" fill="white" opacity="0.35" />
+      {/* Right main content */}
+      <rect x="38" y="8"  width="55" height="4"   rx="0.5" fill="#1e3a5f" opacity="0.85" />
+      <rect x="38" y="14" width="40" height="2.5" rx="0.5" fill="#6b7280" />
+      {/* Main: experience heading */}
+      <rect x="38" y="22" width="30" height="2.5" rx="0.5" fill="#374151" />
+      <rect x="38" y="25.5" width="55" height="0.5" fill="#e5e7eb" />
+      <rect x="38" y="29" width="55" height="2"   rx="0.5" fill="#374151" />
+      <rect x="38" y="33" width="50" height="1.5" rx="0.5" fill="#9ca3af" />
+      <rect x="38" y="37" width="52" height="1.5" rx="0.5" fill="#9ca3af" />
+      <rect x="38" y="42" width="55" height="2"   rx="0.5" fill="#374151" />
+      <rect x="38" y="46" width="48" height="1.5" rx="0.5" fill="#9ca3af" />
+      <rect x="38" y="50" width="52" height="1.5" rx="0.5" fill="#9ca3af" />
+      {/* Main: projects heading */}
+      <rect x="38" y="58" width="26" height="2.5" rx="0.5" fill="#374151" />
+      <rect x="38" y="61.5" width="55" height="0.5" fill="#e5e7eb" />
+      <rect x="38" y="65" width="55" height="2"   rx="0.5" fill="#374151" />
+      <rect x="38" y="69" width="50" height="1.5" rx="0.5" fill="#9ca3af" />
+      <rect x="38" y="73" width="44" height="1.5" rx="0.5" fill="#9ca3af" />
+    </svg>
+  )
+}
+
 function TemplateThumbnail({ id }) {
-  return id === 'classic' ? <ClassicThumb /> : <FlowCVThumb />
+  if (id === 'classic')  return <ClassicThumb />
+  if (id === 'minimal')  return <MinimalThumb />
+  if (id === 'sidebar')  return <SidebarThumb />
+  return <FlowCVThumb />
 }
 
 // ─── Template Carousel ───────────────────────────────────────────────────────
@@ -373,9 +457,8 @@ export default function CustomizePanel() {
             options={[
               { id: 'single', label: 'Single' },
               { id: 'two',    label: 'Double' },
-              { id: 'mix',    label: 'Mix'    },
             ]}
-            columns={3}
+            columns={2}
           />
         </SubSection>
 
@@ -426,25 +509,11 @@ export default function CustomizePanel() {
         {/* 4 · Entry Layout */}
         <SubSection label="Entry Layout">
           <ChoiceRow
-            label="Date position"
-            value={c.entry_date_pos ?? 'inline'}
-            onChange={(v) => update({ entry_date_pos: v })}
-            options={ALIGN_OPTS}
-            columns={4}
-          />
-          <ChoiceRow
-            label="Location position"
-            value={c.entry_loc_pos ?? 'inline'}
-            onChange={(v) => update({ entry_loc_pos: v })}
-            options={ALIGN_OPTS}
-            columns={4}
-          />
-          <ChoiceRow
-            label="Subtitle position"
-            value={c.entry_subtitle_pos ?? 'inline'}
-            onChange={(v) => update({ entry_subtitle_pos: v })}
-            options={ALIGN_OPTS}
-            columns={4}
+            label="Layout mode"
+            value={c.entry_layout ?? 'inline'}
+            onChange={(v) => update({ entry_layout: v })}
+            options={ENTRY_LAYOUTS}
+            columns={3}
           />
           <ChoiceRow
             label="Title size"
@@ -454,28 +523,18 @@ export default function CustomizePanel() {
             columns={5}
           />
           <ChoiceRow
-            label="Subtitle size"
+            label="Section heading size"
             value={c.subtitle_size ?? 11}
             onChange={(v) => update({ subtitle_size: v })}
             options={SUBTITLE_SIZES.map((n) => ({ id: n, label: String(n) }))}
             columns={5}
           />
           <ChoiceRow
-            label="Subtitle style"
+            label="Section heading style"
             value={c.subtitle_style ?? 'underline'}
             onChange={(v) => update({ subtitle_style: v })}
             options={SUBTITLE_STYLES}
             columns={3}
-          />
-          <ChoiceRow
-            label="Subtitle placement"
-            value={c.entry_subtitle_placement ?? 'same'}
-            onChange={(v) => update({ entry_subtitle_placement: v })}
-            options={[
-              { id: 'same',     label: 'Same line' },
-              { id: 'nextline', label: 'Next line' },
-            ]}
-            columns={2}
           />
         </SubSection>
 

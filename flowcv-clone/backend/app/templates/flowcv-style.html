@@ -117,54 +117,36 @@
   /* ---------- ENTRIES ---------- */
   .entry { margin-bottom: {{ c.entry_spacing }}px; }
 
-  .entry.dates-left  { display: grid; grid-template-columns: 110px 1fr; gap: 14px; }
-  .entry.dates-right { display: grid; grid-template-columns: 1fr 110px; gap: 14px; }
-  .entry.dates-right .entry-left  { order: 2; text-align: right; }
-  .entry.dates-right .entry-right { order: 1; }
-  .entry.dates-inline .entry-head {
-    display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  /* layout-inline: title full-width, then one meta-row: date-left | sub-center | loc-right */
+  .entry.layout-inline .meta-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 8px; margin-top: 2px;
   }
-  .entry.dates-inline .dates { color: #6b7280; white-space: nowrap; font-size: {{ c.font_size * 0.95 }}pt; }
-  .entry.dates-inline .loc   { color: #6b7280; font-size: {{ c.font_size * 0.9 }}pt; }
+  .meta-date { flex: 0 0 auto; color: #6b7280; white-space: nowrap; font-size: {{ c.font_size * 0.95 }}pt; }
+  .meta-sub  { flex: 1; text-align: center; font-style: italic; color: #374151; font-size: {{ c.font_size * 0.98 }}pt; }
+  .meta-loc  { flex: 0 0 auto; color: #6b7280; white-space: nowrap; font-size: {{ c.font_size * 0.9 }}pt; }
 
-  .entry-left {
-    color: #6b7280;
-    font-size: {{ c.font_size * 0.95 }}pt;
-    line-height: 1.35;
-    {% if c.entry_loc_pos == 'center' %}text-align: center;
-    {% elif c.entry_loc_pos == 'right' %}text-align: right;{% endif %}
-  }
-  .entry-title {
-    font-weight: 700;
-    font-size: {{ c.entry_title_size }}pt;
-    color: {{ c.text_color }};
-    {% if c.entry_subtitle_placement == 'same' %}display: inline;{% endif %}
-  }
-  .entry-sub {
-    font-style: italic;
-    color: #374151;
-    font-size: {{ c.font_size * 0.98 }}pt;
-    margin-top: 1px;
-    text-align: {{ c.entry_subtitle_pos if c.entry_subtitle_pos in ('left','center','right') else 'left' }};
-    {% if c.entry_subtitle_placement == 'same' %}
-      display: inline; margin-top: 0;
-    {% else %}
-      display: block;
-    {% endif %}
-  }
-  {% if c.entry_subtitle_placement == 'same' %}
-  .entry-sub::before { content: ' · '; color: #9ca3af; font-style: normal; }
-  {% endif %}
-  .loc {
-    color: #6b7280; font-size: {{ c.font_size * 0.9 }}pt;
-    {% if c.entry_loc_pos == 'center' %}text-align: center;
-    {% elif c.entry_loc_pos == 'right' %}text-align: right;
-    {% elif c.entry_loc_pos == 'inline' %}display: inline; margin-left: 6px;{% endif %}
-  }
+  /* layout-left-col: [date/loc col] | [title+sub+desc col] */
+  .entry.layout-left-col { display: grid; grid-template-columns: 120px 1fr; gap: 0 16px; }
+  .entry.layout-left-col .col-left { color: #6b7280; font-size: {{ c.font_size * 0.95 }}pt; line-height: 1.35; }
+
+  /* layout-right-col: [title+sub+desc col] | [date/loc col] */
+  .entry.layout-right-col { display: grid; grid-template-columns: 1fr 120px; gap: 0 16px; }
+  .entry.layout-right-col .col-right { color: #6b7280; font-size: {{ c.font_size * 0.95 }}pt; line-height: 1.35; text-align: right; }
+
+  .entry-title { font-weight: 700; font-size: {{ c.entry_title_size }}pt; color: {{ c.text_color }}; }
+  .entry-sub { font-style: italic; color: #374151; font-size: {{ c.font_size * 0.98 }}pt; margin-top: 1px; }
   .entry-desc { margin-top: 3px; }
   .entry-desc ul { margin: 2px 0 2px 16px; padding: 0; }
   .entry-desc li { margin: 1px 0; }
   .entry-desc p { margin: 0 0 3px; }
+
+  /* ---------- PAGE COLUMNS ---------- */
+  {% if c.columns != 'single' %}
+  .modules-wrapper { column-count: 2; column-gap: 20px; }
+  h2.section { break-before: avoid; break-inside: avoid; }
+  .entry { break-inside: avoid; }
+  {% endif %}
 
   /* ---------- SKILLS ---------- */
   .skills-group { margin-bottom: 6px; }
@@ -273,9 +255,10 @@
 {% endif %}
 
 {# ---------- MODULES ---------- #}
+{% set entry_layout = c.entry_layout | default('inline') %}
+<div class="modules-wrapper">
 {% for m in resume.modules %}
   {% if not m.hidden %}
-    {# page_break module type: emit a break marker and skip normal rendering #}
     {% if m.type == 'page_break' %}
       <div class="page-break"></div>
     {% else %}
@@ -284,9 +267,6 @@
       {% if not e.get('hidden', false) %}{% set _ = visible_entries.append(e) %}{% endif %}
     {% endfor %}
     {% if visible_entries %}
-      {% set _pos_map = {'inline': 'dates-inline', 'left': 'dates-left', 'right': 'dates-right', 'center': 'dates-left'} %}
-      {% set _global_default = _pos_map.get(c.entry_date_pos, 'dates-inline') %}
-      {% set layout = c.entry_layouts.get(m.type, _global_default) %}
       <section class="resume-module" data-module-id="{{ m.id }}" data-module-name="{{ m.name|e }}">
       <h2 class="section">
         <span class="sec-icon">{{ section_icon(m.icon) }}</span>
@@ -301,109 +281,130 @@
       {% elif m.type == 'education' %}
         {% for e in visible_entries %}
           {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), false, date_fmt) %}
-          <div class="entry {{ layout }}">
-            {% if layout == 'dates-inline' %}
-              <div class="entry-head">
-                <div class="entry-title">{{ e.get('school','') }}</div>
-                {% if drange %}<span class="dates">{{ drange }}</span>{% endif %}
-              </div>
-              <div class="entry-sub">
-                {{ e.get('degree','') }}{% if e.get('field_of_study') %}, {{ e.field_of_study }}{% endif %}
-                {% if e.get('is_full_time') == false %} (Part-time){% endif %}
-                {% if e.get('location') %} <span class="loc">· {{ e.location }}</span>{% endif %}
-              </div>
-              {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
-              {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
-            {% else %}
-              <div class="entry-left">
-                {% if drange %}{{ drange }}{% endif %}
+          {% set sub = e.get('degree','') %}
+          {% if e.get('field_of_study') %}{% set sub = sub + ', ' + e.field_of_study %}{% endif %}
+          {% if e.get('is_full_time') == false %}{% set sub = sub + ' (Part-time)' %}{% endif %}
+          {% if entry_layout == 'left-col' %}
+            <div class="entry layout-left-col">
+              <div class="col-left">
+                {% if drange %}<div>{{ drange }}</div>{% endif %}
                 {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
               </div>
-              <div class="entry-right">
+              <div class="col-right">
                 <div class="entry-title">{{ e.get('school','') }}</div>
-                <div class="entry-sub">
-                  {{ e.get('degree','') }}{% if e.get('field_of_study') %}, {{ e.field_of_study }}{% endif %}
-                  {% if e.get('is_full_time') == false %} (Part-time){% endif %}
-                </div>
+                {% if sub %}<div class="entry-sub">{{ sub }}</div>{% endif %}
                 {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
-            {% endif %}
-          </div>
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
+                <div class="entry-title">{{ e.get('school','') }}</div>
+                {% if sub %}<div class="entry-sub">{{ sub }}</div>{% endif %}
+                {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              </div>
+              <div class="col-right">
+                {% if drange %}<div>{{ drange }}</div>{% endif %}
+                {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="entry layout-inline">
+              <div class="entry-title">{{ e.get('school','') }}</div>
+              <div class="meta-row">
+                {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
+                {% if sub %}<span class="meta-sub">{{ sub }}</span>{% endif %}
+                {% if e.get('location') %}<span class="meta-loc">{{ e.location }}</span>{% endif %}
+              </div>
+              {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
+              {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+            </div>
+          {% endif %}
         {% endfor %}
 
       {% elif m.type == 'experience' %}
         {% for e in visible_entries %}
           {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), e.get('currently_working', false), date_fmt) %}
-          <div class="entry {{ layout }}">
-            {% if layout == 'dates-inline' %}
-              <div class="entry-head">
-                <div>
-                  <span class="entry-title">{{ e.get('company','') }}</span>
-                  {% if e.get('position') %} <span class="entry-sub" style="margin:0;">· {{ e.position }}</span>{% endif %}
-                </div>
-                {% if drange %}<span class="dates">{{ drange }}</span>{% endif %}
-              </div>
-              {% if e.get('location') %}<div class="loc">{{ e.location }}</div>{% endif %}
-              {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
-            {% elif layout == 'role-first' %}
-              <div class="entry-left">
-                {% if drange %}{{ drange }}{% endif %}
+          {% if entry_layout == 'left-col' %}
+            <div class="entry layout-left-col">
+              <div class="col-left">
+                {% if drange %}<div>{{ drange }}</div>{% endif %}
                 {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
               </div>
-              <div class="entry-right">
-                <div class="entry-title">{{ e.get('position','') }}</div>
-                <div class="entry-sub">{{ e.get('company','') }}</div>
-                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
-              </div>
-            {% else %}
-              <div class="entry-left">
-                {% if drange %}{{ drange }}{% endif %}
-                {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
-              </div>
-              <div class="entry-right">
+              <div class="col-right">
                 <div class="entry-title">{{ e.get('company','') }}</div>
-                <div class="entry-sub">{{ e.get('position','') }}</div>
+                {% if e.get('position') %}<div class="entry-sub">{{ e.position }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
-            {% endif %}
-          </div>
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
+                <div class="entry-title">{{ e.get('company','') }}</div>
+                {% if e.get('position') %}<div class="entry-sub">{{ e.position }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              </div>
+              <div class="col-right">
+                {% if drange %}<div>{{ drange }}</div>{% endif %}
+                {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="entry layout-inline">
+              <div class="entry-title">{{ e.get('company','') }}</div>
+              <div class="meta-row">
+                {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
+                {% if e.get('position') %}<span class="meta-sub">{{ e.position }}</span>{% endif %}
+                {% if e.get('location') %}<span class="meta-loc">{{ e.location }}</span>{% endif %}
+              </div>
+              {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+            </div>
+          {% endif %}
         {% endfor %}
 
       {% elif m.type == 'projects' %}
         {% for e in visible_entries %}
           {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), false, date_fmt) %}
-          <div class="entry {{ layout }}">
-            {% if layout == 'name-only' %}
-              <div class="entry-right" style="grid-column: 1 / -1;">
+          {% if entry_layout == 'left-col' %}
+            <div class="entry layout-left-col">
+              <div class="col-left">
+                {% if drange %}<div>{{ drange }}</div>{% endif %}
+              </div>
+              <div class="col-right">
                 <div class="entry-title">
                   {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
-                  {% if e.get('role') %} <span class="entry-sub" style="margin:0;">· {{ e.role }}</span>{% endif %}
                 </div>
+                {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
-            {% elif layout == 'dates-inline' %}
-              <div class="entry-head">
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
                 <div class="entry-title">
                   {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
                 </div>
-                {% if drange %}<span class="dates">{{ drange }}</span>{% endif %}
+                {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
-              {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
+              <div class="col-right">
+                {% if drange %}<div>{{ drange }}</div>{% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="entry layout-inline">
+              <div class="entry-title">
+                {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
+              </div>
+              <div class="meta-row">
+                {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
+                {% if e.get('role') %}<span class="meta-sub">{{ e.role }}</span>{% endif %}
+              </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
-            {% else %}
-              <div class="entry-left">
-                {% if drange %}{{ drange }}{% endif %}
-                {% if e.get('role') %}<div style="font-style:italic;">{{ e.role }}</div>{% endif %}
-              </div>
-              <div class="entry-right">
-                <div class="entry-title">
-                  {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
-                </div>
-                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
-              </div>
-            {% endif %}
-          </div>
+            </div>
+          {% endif %}
         {% endfor %}
 
       {% elif m.type == 'skills' %}
@@ -419,26 +420,68 @@
 
       {% elif m.type == 'awards' %}
         {% for e in visible_entries %}
-          <div class="entry dates-left">
-            <div class="entry-left">{{ e.get('date','') | date_fmt(date_fmt) }}</div>
-            <div class="entry-right">
+          {% set date_str = e.get('date','') | date_fmt(date_fmt) %}
+          {% if entry_layout == 'left-col' %}
+            <div class="entry layout-left-col">
+              <div class="col-left">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
+              <div class="col-right">
+                <div class="entry-title">{{ e.get('title','') }}</div>
+                {% if e.get('issuer') %}<div class="entry-sub">{{ e.issuer }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
+              </div>
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
+                <div class="entry-title">{{ e.get('title','') }}</div>
+                {% if e.get('issuer') %}<div class="entry-sub">{{ e.issuer }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
+              </div>
+              <div class="col-right">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
+            </div>
+          {% else %}
+            <div class="entry layout-inline">
               <div class="entry-title">{{ e.get('title','') }}</div>
-              {% if e.get('issuer') %}<div class="entry-sub">{{ e.issuer }}</div>{% endif %}
+              <div class="meta-row">
+                {% if date_str %}<span class="meta-date">{{ date_str }}</span>{% endif %}
+                {% if e.get('issuer') %}<span class="meta-sub">{{ e.issuer }}</span>{% endif %}
+              </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
             </div>
-          </div>
+          {% endif %}
         {% endfor %}
 
       {% else %}
         {% for e in visible_entries %}
-          <div class="entry dates-left">
-            <div class="entry-left">{{ e.get('date','') | date_fmt(date_fmt) }}</div>
-            <div class="entry-right">
+          {% set date_str = e.get('date','') | date_fmt(date_fmt) %}
+          {% if entry_layout == 'left-col' %}
+            <div class="entry layout-left-col">
+              <div class="col-left">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
+              <div class="col-right">
+                {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
+                {% if e.get('subtitle') %}<div class="entry-sub">{{ e.subtitle }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              </div>
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
+                {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
+                {% if e.get('subtitle') %}<div class="entry-sub">{{ e.subtitle }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              </div>
+              <div class="col-right">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
+            </div>
+          {% else %}
+            <div class="entry layout-inline">
               {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
-              {% if e.get('subtitle') %}<div class="entry-sub">{{ e.subtitle }}</div>{% endif %}
+              <div class="meta-row">
+                {% if date_str %}<span class="meta-date">{{ date_str }}</span>{% endif %}
+                {% if e.get('subtitle') %}<span class="meta-sub">{{ e.subtitle }}</span>{% endif %}
+              </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
             </div>
-          </div>
+          {% endif %}
         {% endfor %}
       {% endif %}
       </section>
@@ -447,6 +490,7 @@
     {% endif %}
   {% endif %}
 {% endfor %}
+</div>
 
 </body>
 </html>

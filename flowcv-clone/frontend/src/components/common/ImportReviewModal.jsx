@@ -213,12 +213,12 @@ export default function ImportReviewModal({ parsedResume, onClose, onConfirm }) 
   }, [extracted, profile])
 
   const [selected, setSelected] = useState({})
-  // Initialize selection whenever data/dup map arrives.
+  // Initialize selection: duplicates start unchecked.
   useEffect(() => {
     if (!profile) return
     const init = {}
     for (const [pool, items] of Object.entries(extracted)) {
-      init[pool] = items.map(() => true)
+      init[pool] = items.map((_, i) => !(duplicates[pool]?.[i]))
     }
     setSelected(init)
   }, [extracted, duplicates, profile])

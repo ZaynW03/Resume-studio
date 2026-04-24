@@ -35,11 +35,19 @@ def list_resumes() -> list[dict[str, Any]]:
     return out
 
 
+def _migrate_resume_data(data: dict) -> dict:
+    """Fix removed/renamed field values so old JSON files load without validation errors."""
+    c = data.get("customize")
+    if isinstance(c, dict) and c.get("columns") == "mix":
+        c["columns"] = "single"
+    return data
+
+
 def get_resume(resume_id: str) -> Resume | None:
     p = RESUMES_DIR / f"{resume_id}.json"
     if not p.exists():
         return None
-    return Resume(**json.loads(p.read_text(encoding="utf-8")))
+    return Resume(**_migrate_resume_data(json.loads(p.read_text(encoding="utf-8"))))
 
 
 def save_resume(resume: Resume) -> Resume:

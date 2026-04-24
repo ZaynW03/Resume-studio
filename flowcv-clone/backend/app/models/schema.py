@@ -121,7 +121,7 @@ class ResumeModule(BaseModel):
 class Customize(BaseModel):
     # layout
     template: str = "flowcv-style"                         # classic | flowcv-style
-    columns: Literal["single", "two", "mix"] = "single"
+    columns: Literal["single", "two"] = "single"
     page_breaks: list[str] = []                            # list of module ids after which to break
 
     # spacing — DISCRETE tokens. Strings map to px values via the template.
@@ -166,14 +166,11 @@ class Customize(BaseModel):
         "projects":   "dates-left",
     })
 
-    # Global entry element positions: 'left' | 'center' | 'right' | 'inline'
-    entry_date_pos: str = "inline"
-    entry_loc_pos: str = "inline"
-    entry_subtitle_pos: str = "inline"
+    # Global entry layout: inline | left-col | right-col
+    entry_layout: Literal["inline", "left-col", "right-col"] = "inline"
 
-    # Entry title/subtitle sizing
+    # Entry title sizing
     entry_title_size: float = 11                           # pt, for entry-level title
-    entry_subtitle_placement: str = "same"                 # 'same' | 'nextline'
 
     # personal details block
     personal_alignment: Literal["left", "center", "right"] = "left"

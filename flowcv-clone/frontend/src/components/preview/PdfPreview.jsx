@@ -129,11 +129,39 @@ async function paginateRenderedHtml(fullHtml, paper) {
       .filter((v) => v > 1 && v < contentBottom - 1)
       .sort((a, b) => a - b)
 
+    // Collect block-level element rects for safe-break detection
+    const blockRects = Array.from(doc.querySelectorAll(
+      'h2, p, li, .entry, .entry-title, .entry-sub, .meta-row, .skills-group, .contact-item'
+    )).map((el) => {
+      const rect = el.getBoundingClientRect()
+      return {
+        top: Math.max(0, rect.top - bodyRect.top - paddingTop),
+        bottom: Math.max(0, rect.bottom - bodyRect.top - paddingTop),
+      }
+    })
+
     const starts = [0]
     let cursor = 0
     while (cursor < contentBottom - 1) {
-      const nextForced = forcedBreaks.find((v) => v > cursor + 1 && v <= cursor + contentHeight + 1)
-      const next = nextForced || Math.min(cursor + contentHeight, contentBottom)
+      const maxEnd = cursor + contentHeight
+      const nextForced = forcedBreaks.find((v) => v > cursor + 1 && v <= maxEnd + 1)
+
+      let next
+      if (nextForced) {
+        next = nextForced
+      } else if (maxEnd >= contentBottom) {
+        next = contentBottom
+      } else {
+        // Walk back from maxEnd to avoid cutting through any block element
+        next = maxEnd
+        for (const r of blockRects) {
+          if (r.top < maxEnd && r.bottom > maxEnd + 0.5 && r.top > cursor + 10) {
+            next = Math.min(next, r.top)
+          }
+        }
+        next = Math.min(next, contentBottom)
+      }
+
       if (next <= cursor + 1) break
       starts.push(next)
       cursor = next
