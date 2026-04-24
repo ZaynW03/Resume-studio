@@ -1,0 +1,349 @@
+{# Classic resume template. Rendered by WeasyPrint for PDF and by the
+   frontend preview iframe - same bytes, guaranteed WYSIWYG. #}
+<!DOCTYPE html>
+<html lang="{{ resume.language }}">
+<head>
+<meta charset="utf-8"/>
+<style>
+  @page {
+    size: {{ c.paper }};
+    margin: {{ c.vertical_margin }}px {{ c.page_margin }}px;
+  }
+  html, body {
+    font-family: "{{ c.font_family }}", "Noto Sans CJK SC", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica", sans-serif;
+    font-size: {{ c.font_size }}pt;
+    line-height: {{ c.line_height }};
+    color: {{ c.text_color }};
+    margin: 0;
+    padding: {{ c.vertical_margin }}px {{ c.page_margin }}px;
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+
+  h1 { font-size: {{ c.font_size * 2 }}pt; margin: 0 0 4px; font-weight: 700; }
+
+  /* ---- Section heading with full subtitle_style support ---- */
+  h2.section {
+    font-family: "{{ c.subtitle_font }}";
+    font-size: {{ c.subtitle_size }}pt;
+    font-weight: {{ c.subtitle_weight }};
+    color: {{ c.subtitle_color }};
+    text-transform: {% if c.subtitle_case == 'upper' %}uppercase{% elif c.subtitle_case == 'lower' %}lowercase{% elif c.subtitle_case == 'title' %}capitalize{% else %}none{% endif %};
+    letter-spacing: 0.02em;
+    margin: {{ c.section_margin }}px 0 6px;
+    {% if c.subtitle_style == 'underline' %}
+      padding-bottom: 3px;
+      border-bottom: 1.5px solid {{ c.accent_color }};
+    {% elif c.subtitle_style == 'overline' %}
+      padding-top: 3px;
+      border-top: 1.5px solid {{ c.accent_color }};
+    {% elif c.subtitle_style == 'double-line' %}
+      padding: 3px 0;
+      border-top: 1.5px solid {{ c.accent_color }};
+      border-bottom: 1.5px solid {{ c.accent_color }};
+    {% elif c.subtitle_style == 'box' %}
+      padding: 3px 8px;
+      border: 1.5px solid {{ c.accent_color }};
+    {% elif c.subtitle_style == 'pill' %}
+      padding: 3px 12px;
+      background: {{ c.accent_color }};
+      color: white;
+      border-radius: 999px;
+      display: inline-block;
+    {% elif c.subtitle_style == 'left-bar' %}
+      padding-left: 10px;
+      border-left: 3px solid {{ c.accent_color }};
+    {% endif %}
+  }
+
+  /* ---- Entry layout ---- */
+  .entry { margin-bottom: {{ c.entry_spacing }}px; }
+
+  /* Date position */
+  {% set pos_map = {'inline': 'dates-inline', 'left': 'dates-left', 'right': 'dates-right', 'center': 'dates-left'} %}
+  {% set global_layout = pos_map.get(c.entry_date_pos, 'dates-inline') %}
+
+  .entry.dates-left  { display: grid; grid-template-columns: 110px 1fr; gap: 14px; }
+  .entry.dates-right { display: grid; grid-template-columns: 1fr 110px; gap: 14px; }
+  .entry.dates-right .entry-left  { order: 2; text-align: right; }
+  .entry.dates-right .entry-right { order: 1; }
+  .entry.dates-inline .entry-head {
+    display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+  }
+
+  .entry-left  { color: #6b7280; font-size: {{ c.font_size * 0.95 }}pt; line-height: 1.4; }
+  .entry-title {
+    font-weight: 700;
+    font-size: {{ c.entry_title_size }}pt;
+    color: {{ c.text_color }};
+    {% if c.entry_subtitle_placement == 'same' %}display: inline;{% endif %}
+  }
+  .entry-sub {
+    color: #374151;
+    font-size: {{ c.font_size * 0.95 }}pt;
+    text-align: {{ c.entry_subtitle_pos if c.entry_subtitle_pos in ('left','center','right') else 'left' }};
+    {% if c.entry_subtitle_placement == 'same' %}
+      display: inline;
+    {% else %}
+      display: block;
+    {% endif %}
+  }
+  {% if c.entry_subtitle_placement == 'same' %}
+  .entry-sub::before { content: ' · '; color: #9ca3af; }
+  {% endif %}
+
+  .dates {
+    color: #6b7280;
+    white-space: nowrap;
+    font-size: {{ c.font_size * 0.92 }}pt;
+    {% if c.entry_loc_pos == 'center' %}text-align: center;{% elif c.entry_loc_pos == 'right' %}text-align: right;{% endif %}
+  }
+  .loc {
+    color: #6b7280;
+    font-size: {{ c.font_size * 0.9 }}pt;
+    {% if c.entry_loc_pos == 'center' %}text-align: center;
+    {% elif c.entry_loc_pos == 'right' %}text-align: right;
+    {% elif c.entry_loc_pos == 'inline' %}display: inline; margin-left: 6px;
+    {% endif %}
+  }
+
+  .personal {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: {{ c.personal_alignment }};
+    margin-bottom: {{ c.section_margin }}px;
+    {% if c.photo_position == 'right' %}flex-direction: row-reverse;{% endif %}
+    {% if c.photo_position == 'top' %}flex-direction: column; align-items: {% if c.personal_alignment == 'center' %}center{% elif c.personal_alignment == 'right' %}flex-end{% else %}flex-start{% endif %};{% endif %}
+  }
+  .personal-info { flex: 1; min-width: 0; }
+  .photo {
+    width: {{ c.photo_size }}px; height: {{ c.photo_size }}px;
+    object-fit: cover; flex: 0 0 auto;
+    {% if c.photo_shape == 'circle' %}border-radius: 50%;
+    {% elif c.photo_shape == 'rounded' %}border-radius: 12px;{% endif %}
+  }
+  .contact-line { color: #4b5563; font-size: {{ c.font_size * 0.95 }}pt; }
+  .contact-line span + span::before { content: " · "; color: #9ca3af; }
+  ul { margin: 4px 0 4px 18px; padding: 0; }
+  li { margin: 2px 0; }
+  p { margin: 0 0 4px; }
+  a { color: {{ c.accent_color }}; text-decoration: none; }
+  .page-break { page-break-after: always; }
+  .skills-row { margin: 2px 0; }
+  .skills-cat { font-weight: 600; }
+  .entry-desc { margin-top: 3px; }
+  .entry-desc ul { margin: 2px 0 2px 16px; padding: 0; }
+  .entry-desc li { margin: 1px 0; }
+  .entry-desc p { margin: 0 0 3px; }
+</style>
+</head>
+<body>
+
+{# ---- Personal details ---- #}
+{% set default_order = ['full_name','job_title','summary_line','location','email','phone','website','linkedin','github','wechat','qq'] %}
+{% set order = resume.personal.visible_fields if resume.personal.visible_fields else default_order %}
+{% set hidden = resume.personal.hidden_fields if resume.personal.hidden_fields else [] %}
+{% set ns = namespace(personal_visible=false) %}
+{% for m in resume.modules %}
+  {% if m.type == 'personal_details' and not m.hidden %}{% set ns.personal_visible = true %}{% endif %}
+{% endfor %}
+{% if ns.personal_visible %}
+<section class="resume-header">
+<div class="personal">
+  {% if c.show_photo and resume.personal.photo_url %}
+    <img class="photo" src="{{ resume.personal.photo_url }}"/>
+  {% endif %}
+  <div class="personal-info">
+    {% for field in order %}
+      {% if field not in hidden and field == 'full_name' and resume.personal.full_name %}
+        <h1>{{ resume.personal.full_name }}</h1>
+      {% elif field not in hidden and field == 'job_title' and resume.personal.job_title %}
+        <div style="color:{{ c.accent_color }};font-weight:600;">{{ resume.personal.job_title }}</div>
+      {% elif field not in hidden and field == 'summary_line' and resume.personal.summary_line %}
+        <div style="margin-top:2px;">{{ resume.personal.summary_line }}</div>
+      {% endif %}
+    {% endfor %}
+    <div class="contact-line" style="margin-top:4px;">
+      {% for field in order %}
+        {% if field not in hidden and field == 'email'    and resume.personal.email    %}<span>{{ resume.personal.email }}</span>{% endif %}
+        {% if field not in hidden and field == 'phone'    and resume.personal.phone    %}<span>{{ resume.personal.phone }}</span>{% endif %}
+        {% if field not in hidden and field == 'location' and resume.personal.location %}<span>{{ resume.personal.location }}</span>{% endif %}
+        {% if field not in hidden and field == 'website'  and resume.personal.website  %}<span><a href="{{ resume.personal.website }}">{{ resume.personal.website }}</a></span>{% endif %}
+        {% if field not in hidden and field == 'linkedin' and resume.personal.linkedin %}<span><a href="{{ resume.personal.linkedin }}">LinkedIn</a></span>{% endif %}
+        {% if field not in hidden and field == 'github'   and resume.personal.github   %}<span><a href="{{ resume.personal.github }}">GitHub</a></span>{% endif %}
+        {% if field not in hidden and field == 'wechat'   and resume.personal.wechat   %}<span>{{ resume.personal.wechat }}</span>{% endif %}
+        {% if field not in hidden and field == 'qq'       and resume.personal.qq       %}<span>{{ resume.personal.qq }}</span>{% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+</section>
+{% endif %}
+
+{# ---- Modules ---- #}
+{% set pos_map = {'inline': 'dates-inline', 'left': 'dates-left', 'right': 'dates-right', 'center': 'dates-left'} %}
+{% set global_layout = pos_map.get(c.entry_date_pos, 'dates-inline') %}
+
+{% for m in resume.modules %}
+  {% if not m.hidden %}
+    {% if m.type == 'page_break' %}
+      <div class="page-break"></div>
+    {% else %}
+      {% set visible_entries = [] %}
+      {% for e in m.entries %}
+        {% if not e.get('hidden', false) %}{% set _ = visible_entries.append(e) %}{% endif %}
+      {% endfor %}
+      {% if visible_entries %}
+        {% set layout = c.entry_layouts.get(m.type, global_layout) %}
+        <section class="resume-module" data-module-id="{{ m.id }}" data-module-name="{{ m.name|e }}">
+        <h2 class="section">{{ m.name }}</h2>
+
+        {% if m.type == 'summary' %}
+          {% for e in visible_entries %}
+            {% if e.get('content') %}{{ e.content | safe }}{% endif %}
+          {% endfor %}
+
+        {% elif m.type == 'education' %}
+          {% for e in visible_entries %}
+            {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), false, date_fmt) %}
+            <div class="entry {{ layout }}">
+              {% if layout == 'dates-inline' %}
+                <div class="entry-head">
+                  <div>
+                    <span class="entry-title">{{ e.get('school','') }}</span>
+                    {% if e.get('degree') %}<span class="entry-sub">{{ e.degree }}{% if e.get('field_of_study') %}, {{ e.field_of_study }}{% endif %}</span>{% endif %}
+                  </div>
+                  {% if drange %}<span class="dates">{{ drange }}</span>{% endif %}
+                </div>
+                {% if e.get('location') %}<div class="loc">{{ e.location }}</div>{% endif %}
+                {% if e.get('gpa') %}<div>GPA: {{ e.gpa }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              {% else %}
+                <div class="entry-left">
+                  {% if drange %}{{ drange }}{% endif %}
+                  {% if e.get('location') %}<div class="loc">{{ e.location }}</div>{% endif %}
+                </div>
+                <div class="entry-right">
+                  <span class="entry-title">{{ e.get('school','') }}</span>
+                  {% if e.get('degree') %}<span class="entry-sub">{{ e.degree }}{% if e.get('field_of_study') %}, {{ e.field_of_study }}{% endif %}</span>{% endif %}
+                  {% if e.get('gpa') %}<div>GPA: {{ e.gpa }}</div>{% endif %}
+                  {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+        {% elif m.type == 'experience' %}
+          {% for e in visible_entries %}
+            {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), e.get('currently_working', false), date_fmt) %}
+            <div class="entry {{ layout }}">
+              {% if layout == 'dates-inline' %}
+                <div class="entry-head">
+                  <div>
+                    <span class="entry-title">{{ e.get('company','') }}</span>
+                    {% if e.get('position') %}<span class="entry-sub">{{ e.position }}</span>{% endif %}
+                  </div>
+                  {% if drange %}<span class="dates">{{ drange }}</span>{% endif %}
+                </div>
+                {% if e.get('location') %}<div class="loc">{{ e.location }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              {% else %}
+                <div class="entry-left">
+                  {% if drange %}{{ drange }}{% endif %}
+                  {% if e.get('location') %}<div class="loc">{{ e.location }}</div>{% endif %}
+                </div>
+                <div class="entry-right">
+                  <span class="entry-title">{{ e.get('company','') }}</span>
+                  {% if e.get('position') %}<span class="entry-sub">{{ e.position }}</span>{% endif %}
+                  {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+        {% elif m.type == 'projects' %}
+          {% for e in visible_entries %}
+            {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), false, date_fmt) %}
+            <div class="entry {{ layout }}">
+              {% if layout == 'dates-inline' %}
+                <div class="entry-head">
+                  <span class="entry-title">{{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}">↗</a>{% endif %}</span>
+                  {% if drange %}<span class="dates">{{ drange }}</span>{% endif %}
+                </div>
+                {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              {% else %}
+                <div class="entry-left">
+                  {% if drange %}{{ drange }}{% endif %}
+                  {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
+                </div>
+                <div class="entry-right">
+                  <span class="entry-title">{{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}">↗</a>{% endif %}</span>
+                  {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+        {% elif m.type == 'skills' %}
+          {% for e in visible_entries %}
+            <div class="skills-row">
+              {% if e.get('category') %}<span class="skills-cat">{{ e.category }}:</span> {% endif %}
+              {{ (e.get('items') or []) | join(', ') }}
+              {% if e.get('level') %} <em style="color:#6b7280;">({{ e.level }})</em>{% endif %}
+            </div>
+          {% endfor %}
+
+        {% elif m.type == 'awards' %}
+          {% for e in visible_entries %}
+            <div class="entry {{ layout }}">
+              {% if layout == 'dates-inline' %}
+                <div class="entry-head">
+                  <span class="entry-title">{{ e.get('title','') }}</span>
+                  {% if e.get('date') %}<span class="dates">{{ e.date | date_fmt(date_fmt) }}</span>{% endif %}
+                </div>
+                {% if e.get('issuer') %}<div class="entry-sub">{{ e.issuer }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
+              {% else %}
+                <div class="entry-left">{{ e.get('date','') | date_fmt(date_fmt) }}</div>
+                <div class="entry-right">
+                  <span class="entry-title">{{ e.get('title','') }}</span>
+                  {% if e.get('issuer') %}<span class="entry-sub">{{ e.issuer }}</span>{% endif %}
+                  {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+        {% else %}
+          {% for e in visible_entries %}
+            <div class="entry {{ layout }}">
+              {% if layout == 'dates-inline' %}
+                <div class="entry-head">
+                  {% if e.get('title') %}<span class="entry-title">{{ e.title }}</span>{% endif %}
+                  {% if e.get('date') %}<span class="dates">{{ e.date }}</span>{% endif %}
+                </div>
+                {% if e.get('subtitle') %}<div class="entry-sub">{{ e.subtitle }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              {% else %}
+                <div class="entry-left">{{ e.get('date','') }}</div>
+                <div class="entry-right">
+                  {% if e.get('title') %}<span class="entry-title">{{ e.title }}</span>{% endif %}
+                  {% if e.get('subtitle') %}<span class="entry-sub">{{ e.subtitle }}</span>{% endif %}
+                  {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
+        </section>
+      {% endif %}
+      {% if m.id in c.page_breaks %}<div class="page-break"></div>{% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+</body>
+</html>

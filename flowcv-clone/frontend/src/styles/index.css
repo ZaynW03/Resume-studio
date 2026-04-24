@@ -1,0 +1,163 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  html { color-scheme: dark; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Noto Sans CJK SC', sans-serif;
+    background: #050508;
+    color: #e5e7eb;
+    font-feature-settings: 'ss01' on, 'cv11' on;
+    overflow: hidden;
+  }
+
+  /* Atmospheric backdrop — dot-grid + vignette, like drafting paper under starlight */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      radial-gradient(rgba(34,211,238,0.06) 1px, transparent 1px),
+      linear-gradient(rgba(34,211,238,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,238,0.025) 1px, transparent 1px);
+    background-size: 32px 32px, 128px 128px, 128px 128px;
+    mask-image: radial-gradient(ellipse at top right, black 0%, rgba(0,0,0,0.5) 50%, transparent 85%);
+    -webkit-mask-image: radial-gradient(ellipse at top right, black 0%, rgba(0,0,0,0.5) 50%, transparent 85%);
+  }
+  /* Second soft overlay with a diagonal lightbeam — very subtle */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 15% 0%, rgba(34,211,238,0.08), transparent 40%),
+                radial-gradient(ellipse at 85% 100%, rgba(59,130,246,0.05), transparent 50%);
+  }
+  #root { position: relative; z-index: 1; }
+
+  /* Scrollbars — slim & light */
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: #2a2a36; border-radius: 10px;
+    border: 2px solid transparent; background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: #3a3a48; border: 2px solid transparent; background-clip: padding-box; }
+
+  input, textarea, select, button { font-family: inherit; }
+  input[type='range'] { accent-color: #22d3ee; }
+  input[type='color'] { background: transparent; cursor: pointer; }
+
+  ::selection { background: rgba(34,211,238,0.35); color: white; }
+}
+
+@layer components {
+  .panel-title {
+    @apply text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-semibold;
+  }
+  /* Card: subtle gradient + glow on the top edge, like light catching a vellum page */
+  .card {
+    background: linear-gradient(180deg, rgba(34,211,238,0.02), rgba(255,255,255,0.01) 40%), #111118;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 12px; right: 12px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.4), transparent);
+    pointer-events: none;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
+           bg-gradient-to-b from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400
+           text-black text-xs font-semibold
+           shadow-[0_0_12px_-2px_rgba(34,211,238,0.6)]
+           transition-all;
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-secondary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
+           bg-white/5 hover:bg-white/10 border border-white/10
+           text-zinc-200 text-xs font-medium;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded
+           text-zinc-400 hover:bg-white/5 hover:text-zinc-100
+           text-xs font-medium;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded
+           text-red-400 hover:bg-red-500/10
+           text-xs font-medium;
+  }
+  .input-dark {
+    @apply w-full bg-ink-800 border border-white/10 rounded px-2.5 py-1.5 text-sm
+           text-zinc-100 placeholder:text-zinc-600
+           focus:outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20
+           transition-colors;
+  }
+  .select-dark {
+    @apply w-full bg-ink-800 border border-white/10 rounded px-2 py-1.5 text-sm
+           text-zinc-100 focus:outline-none focus:border-cyan-400/60;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded text-xs
+           bg-white/5 border border-white/10 text-zinc-300
+           hover:border-cyan-400/50 hover:text-white
+           transition-colors;
+  }
+  .chip-active {
+    @apply bg-cyan-400/10 border-cyan-400/60 text-cyan-300
+           shadow-[0_0_8px_-2px_rgba(34,211,238,0.5)];
+  }
+  .app-scrollbar {
+    scrollbar-gutter: stable;
+  }
+  .app-scrollbar::-webkit-scrollbar {
+    width: 12px;
+  }
+  .app-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.03);
+    border-left: 1px solid rgba(255,255,255,0.04);
+  }
+  .app-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(34,211,238,0.6), rgba(59,130,246,0.45));
+    border: 2px solid rgba(17,17,24,0.95);
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+  .app-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(34,211,238,0.8), rgba(59,130,246,0.6));
+    border: 2px solid rgba(17,17,24,0.95);
+    background-clip: padding-box;
+  }
+
+  /* Hide scrollbar while keeping scroll functionality */
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Reserved for section headings, labels — a classical, monospaced look */
+  .label-classical {
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+}
+
+/* TipTap rich text */
+.ProseMirror {
+  outline: none;
+  min-height: 100px;
+  padding: 10px 12px;
+  color: #e5e7eb;
+  font-size: 13px;
+}
+.ProseMirror p { margin: 0 0 4px; }
+.ProseMirror ul { margin: 4px 0 4px 18px; list-style: disc; }
+.ProseMirror ol { margin: 4px 0 4px 18px; list-style: decimal; }
+.ProseMirror a { color: #22d3ee; text-decoration: underline; }
+.ProseMirror:empty::before {
+  content: attr(data-placeholder);
+  color: #4b5563;
+}

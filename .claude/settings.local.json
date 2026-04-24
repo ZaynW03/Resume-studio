@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(claude doctor *)",
+      "Read(//mnt/c/Users/moon7/AppData/Local/Temp/claude/D--flowcv/b8234b60-4dc0-4119-b7dc-38d72ce94f6d/tasks/**)",
+      "Read(//mnt/c/Users/moon7/AppData/Local/Temp/claude/D--flowcv/b8234b60-4dc0-4119-b7dc-38d72ce94f6d/**)",
+      "PowerShell(claude doctor *)",
+      "Bash(python -c \"from app.models.schema import Customize; c = Customize\\(\\); print\\('vertical_margin:', c.vertical_margin\\); print\\('entry_date_pos:', c.entry_date_pos\\); print\\('entry_title_size:', c.entry_title_size\\); print\\('columns:', c.columns\\)\")"
+    ]
+  }
+}

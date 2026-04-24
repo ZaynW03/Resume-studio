@@ -1,0 +1,370 @@
+import { useState } from 'react'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove, SortableContext, verticalListSortingStrategy, useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  GripVertical, Eye, EyeOff, Trash2, Plus, ChevronDown, ChevronRight,
+  Library, Scissors,
+} from 'lucide-react'
+
+import { useResumeStore, MODULE_BLUEPRINTS } from '../../store/resumeStore'
+import Icon, { ICON_CHOICES } from '../common/Icon'
+import LibraryPickerModal from '../common/LibraryPickerModal'
+import InlineEntryEditor from './InlineEntryEditor'
+import { useT } from '../../i18n'
+
+function entryLabel(type, e) {
+  switch (type) {
+    case 'education':  return e.school || 'Untitled school'
+    case 'experience': return e.position ? `${e.position}${e.company ? ' · ' + e.company : ''}` : (e.company || 'Untitled role')
+    case 'projects':   return e.name || 'Untitled project'
+    case 'skills':     return e.category || (e.items?.length ? e.items.join(', ').slice(0, 40) : 'Skill group')
+    case 'awards':     return e.title || 'Untitled award'
+    case 'summary':    return (e.content || '').replace(/<[^>]+>/g, '').slice(0, 50) || 'Summary'
+    default:           return e.title || 'Untitled'
+  }
+}
+
+// ---------- Entry row (with its own inline editor) ----------
+
+function EntryRow({ mod, entry }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: entry.id })
+  const updateEntry = useResumeStore((s) => s.updateEntry)
+  const removeEntry = useResumeStore((s) => s.removeEntry)
+  const t = useT()
+  const [open, setOpen] = useState(false)  // local per-entry state
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex flex-col">
+      <div
+        className={
+          'group flex items-center gap-1.5 px-2.5 py-2.5 rounded border transition-colors cursor-pointer ' +
+          (open
+            ? 'border-cyan-400/60 bg-cyan-400/5'
+            : 'border-white/5 bg-ink-700 hover:border-cyan-400/30')
+        }
+        onClick={() => setOpen(!open)}
+      >
+        <button
+          className="text-zinc-600 hover:text-cyan-400 cursor-grab active:cursor-grabbing"
+          {...attributes} {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical size={14}/>
+        </button>
+        <div className={'flex-1 text-sm truncate ' + (entry.hidden ? 'text-zinc-600 line-through' : 'text-zinc-100')}>
+          {entryLabel(mod.type, entry)}
+        </div>
+        <button
+          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-200"
+          onClick={(e) => { e.stopPropagation(); updateEntry(mod.id, entry.id, { hidden: !entry.hidden }) }}
+          title={entry.hidden ? 'Show' : 'Hide'}
+        >
+          {entry.hidden ? <EyeOff size={13}/> : <Eye size={13}/>}
+        </button>
+        <button
+          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400"
+          onClick={(e) => {
+            e.stopPropagation()
+            if (confirm(t('module.delete_confirm'))) removeEntry(mod.id, entry.id)
+          }}
+        >
+          <Trash2 size={13}/>
+        </button>
+        {open
+          ? <ChevronDown size={14} className="text-cyan-400"/>
+          : <ChevronRight size={14} className="text-zinc-600"/>}
+      </div>
+      {open && (
+        <div className="mt-1.5 mb-1">
+          <InlineEntryEditor
+            moduleId={mod.id}
+            entryId={entry.id}
+            onClose={() => setOpen(false)}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------- Page break module (minimal visual marker) ----------
+
+function PageBreakCard({ mod }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: mod.id })
+  const removeModule = useResumeStore((s) => s.removeModule)
+  const t = useT()
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}
+      className="flex items-center gap-2 px-3 py-2 rounded border border-dashed border-amber-400/40 bg-amber-400/5">
+      <button className="text-amber-400/60 hover:text-amber-400 cursor-grab active:cursor-grabbing"
+        {...attributes} {...listeners}>
+        <GripVertical size={14}/>
+      </button>
+      <Scissors size={14} className="text-amber-400"/>
+      <div className="flex-1 text-xs text-amber-400 font-mono uppercase tracking-[0.15em]">
+        page break · content below jumps to next page
+      </div>
+      <button
+        className="p-1 rounded hover:bg-red-500/10 text-red-400"
+        onClick={() => { if (confirm('Remove this page break?')) removeModule(mod.id) }}
+        title="Remove">
+        <Trash2 size={13}/>
+      </button>
+    </div>
+  )
+}
+
+// ---------- Regular module card ----------
+
+function ModuleCard({ mod, defaultOpen = true }) {
+  const t = useT()
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: mod.id })
+  const updateModule    = useResumeStore((s) => s.updateModule)
+  const removeModule    = useResumeStore((s) => s.removeModule)
+  const addEntry        = useResumeStore((s) => s.addEntry)
+  const reorderEntries  = useResumeStore((s) => s.reorderEntries)
+
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [editingName, setEditingName] = useState(false)
+  const [pickingIcon, setPickingIcon] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  const entrySensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  const onEntryDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    const ids = mod.entries.map((e) => e.id)
+    const oldIdx = ids.indexOf(active.id)
+    const newIdx = ids.indexOf(over.id)
+    reorderEntries(mod.id, arrayMove(ids, oldIdx, newIdx))
+  }
+
+  const onLibraryPick = (picked) => {
+    const withIds = picked.map((e) => ({
+      ...e, id: Math.random().toString(36).slice(2, 14), hidden: false,
+    }))
+    updateModule(mod.id, { entries: [...mod.entries, ...withIds] })
+    setShowLibrary(false)
+  }
+
+  const hasLibraryPool = ['experience','projects','education','skills','awards','summary'].includes(mod.type)
+
+  return (
+    <div ref={setNodeRef} style={style} className="card overflow-visible">
+      {/* Header */}
+      <div
+        className={
+          'flex items-center gap-2 px-3 py-3 border-b transition-colors cursor-pointer ' +
+          (isOpen ? 'border-cyan-400/30 bg-cyan-400/5' : 'border-white/5 hover:bg-white/5')
+        }
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <button
+          className="text-zinc-600 hover:text-cyan-400 cursor-grab active:cursor-grabbing"
+          {...attributes} {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical size={16}/>
+        </button>
+
+        <div className="relative">
+          <button
+            className="p-1.5 rounded hover:bg-white/10 text-cyan-400"
+            onClick={(e) => { e.stopPropagation(); setPickingIcon(!pickingIcon) }}
+          >
+            <Icon name={mod.icon} size={17}/>
+          </button>
+          {pickingIcon && (
+            <>
+              <div className="fixed inset-0 z-20"
+                onClick={(e) => { e.stopPropagation(); setPickingIcon(false) }}/>
+              <div className="absolute z-30 top-full mt-1 left-0 bg-ink-800 border border-white/10 rounded-lg shadow-2xl p-2 grid grid-cols-6 gap-0.5 w-56">
+                {ICON_CHOICES.map((n) => (
+                  <button key={n}
+                    className={
+                      'p-1.5 rounded hover:bg-cyan-400/10 ' +
+                      (n === mod.icon ? 'bg-cyan-400/15 text-cyan-300' : 'text-zinc-400 hover:text-cyan-300')
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      updateModule(mod.id, { icon: n })
+                      setPickingIcon(false)
+                    }}
+                  >
+                    <Icon name={n} size={15}/>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {editingName ? (
+          <input autoFocus
+            className="flex-1 bg-ink-900 border border-cyan-400/50 rounded px-2 py-1 text-sm text-white focus:outline-none"
+            value={mod.name}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => updateModule(mod.id, { name: e.target.value })}
+            onBlur={() => setEditingName(false)}
+            onKeyDown={(e) => e.key === 'Enter' && setEditingName(false)}/>
+        ) : (
+          <button
+            className="flex-1 text-left text-[15px] font-semibold text-zinc-100 truncate"
+            onDoubleClick={(e) => { e.stopPropagation(); setEditingName(true) }}
+          >
+            {mod.name}
+            <span className="text-zinc-600 font-normal ml-2 text-xs tabular-nums">
+              {mod.entries.length}
+            </span>
+          </button>
+        )}
+
+        <button
+          className="p-1.5 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-200"
+          title={mod.hidden ? 'Show' : 'Hide'}
+          onClick={(e) => { e.stopPropagation(); updateModule(mod.id, { hidden: !mod.hidden }) }}
+        >
+          {mod.hidden ? <EyeOff size={14}/> : <Eye size={14}/>}
+        </button>
+        <button
+          className="p-1.5 rounded hover:bg-red-500/10 text-red-400"
+          title="Delete"
+          onClick={(e) => {
+            e.stopPropagation()
+            if (confirm(`Delete "${mod.name}"?`)) removeModule(mod.id)
+          }}
+        >
+          <Trash2 size={14}/>
+        </button>
+        {isOpen
+          ? <ChevronDown size={16} className="text-cyan-400"/>
+          : <ChevronRight size={16} className="text-zinc-600"/>}
+      </div>
+
+      {/* Expanded entries */}
+      {isOpen && (
+        <div className="p-3 flex flex-col gap-2">
+          {mod.entries.length === 0 && (
+            <div className="text-xs text-zinc-500 text-center py-3">No entries yet.</div>
+          )}
+          <DndContext sensors={entrySensors} collisionDetection={closestCenter} onDragEnd={onEntryDragEnd}>
+            <SortableContext items={mod.entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+              {mod.entries.map((e) => <EntryRow key={e.id} mod={mod} entry={e}/>)}
+            </SortableContext>
+          </DndContext>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => addEntry(mod.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 text-sm text-cyan-400 border border-dashed border-white/10 rounded py-2.5 hover:border-cyan-400/50 hover:bg-cyan-400/5"
+            >
+              <Plus size={14}/> {t('module.new_entry')}
+            </button>
+            {hasLibraryPool && (
+              <button
+                onClick={() => setShowLibrary(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 text-sm text-zinc-300 border border-dashed border-white/10 rounded py-2.5 hover:border-cyan-400/50 hover:bg-white/5"
+              >
+                <Library size={14}/> {t('module.from_library')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showLibrary && (
+        <LibraryPickerModal
+          moduleType={mod.type}
+          onClose={() => setShowLibrary(false)}
+          onPick={onLibraryPick}
+        />
+      )}
+    </div>
+  )
+}
+
+// ---------- Top-level module list ----------
+
+export default function ModuleList() {
+  const t = useT()
+  const modules = useResumeStore((s) => s.resume.modules)
+  const reorder = useResumeStore((s) => s.reorderModules)
+  const addModule = useResumeStore((s) => s.addModule)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  const onDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    const oldIdx = modules.findIndex((m) => m.id === active.id)
+    const newIdx = modules.findIndex((m) => m.id === over.id)
+    reorder(arrayMove(modules, oldIdx, newIdx).map((m) => m.id))
+  }
+
+  const typesInUse = new Set(modules.map((m) => m.type))
+  const addable = Object.keys(MODULE_BLUEPRINTS).filter(
+    (type) => type === 'custom' || type === 'page_break' || !typesInUse.has(type)
+  )
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={modules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+          {modules.map((m) =>
+            m.type === 'page_break'
+              ? <PageBreakCard key={m.id} mod={m}/>
+              : <ModuleCard key={m.id} mod={m}/>
+          )}
+        </SortableContext>
+      </DndContext>
+
+      <div className="mt-2 pt-3 border-t border-white/5">
+        <div className="panel-title mb-2">{t('module.add_section')}</div>
+        <div className="flex flex-wrap gap-1.5">
+          {addable.map((type) => (
+            <button
+              key={type}
+              onClick={() => addModule(type)}
+              className={
+                'chip ' +
+                (type === 'page_break' ? 'border-amber-400/40 text-amber-400' : '')
+              }
+            >
+              <Plus size={11}/>
+              <Icon name={MODULE_BLUEPRINTS[type].icon} size={12}/>
+              {MODULE_BLUEPRINTS[type].name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
