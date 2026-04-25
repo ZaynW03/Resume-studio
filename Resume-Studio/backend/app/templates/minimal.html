@@ -1,6 +1,6 @@
-{# Minimal resume template — no color, clean rules, compact.
+{# Minimal resume template — same Jinja2 code as flowcv-style, monochrome CSS.
    Variables: resume, c, s, date_fmt
-   Filters: format_range #}
+   Filters: date_fmt #}
 <!DOCTYPE html>
 <html lang="{{ resume.language }}">
 <head>
@@ -10,46 +10,47 @@
     size: {{ c.paper }};
     margin: {{ c.vertical_margin }}px {{ c.page_margin }}px;
   }
-  html, body {
+  html {
     font-family: "{{ c.font_family }}", "Noto Sans CJK SC", "PingFang SC",
                  "Microsoft YaHei", "Helvetica", sans-serif;
     font-size: {{ c.font_size }}pt;
     line-height: {{ c.line_height }};
     color: {{ c.text_color }};
-    margin: 0;
-    padding: {{ c.vertical_margin }}px {{ c.page_margin }}px;
-    box-sizing: border-box;
   }
+  body { margin: 0; padding: {{ c.vertical_margin }}px {{ c.page_margin }}px; box-sizing: border-box; }
   * { box-sizing: border-box; }
 
   /* ---------- HEADER ---------- */
-  .resume-header {
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    padding-bottom: 10px;
-    margin-bottom: 4px;
+    gap: 0;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px solid #d1d5db;
   }
-  .resume-header h1 {
-    font-size: {{ c.font_size * 2.2 }}pt;
-    font-weight: 700;
-    margin: 0 0 4px;
-    letter-spacing: 0.03em;
-  }
-  .resume-header .job-title {
-    font-size: {{ c.font_size * 1.1 }}pt;
-    color: #4b5563;
-    margin: 2px 0 6px;
-  }
-  .contact-row {
+  .header-info { flex: 1; min-width: 0; text-align: center; }
+  .contact-list {
+    margin-top: 6px;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 3px 14px;
-    font-size: {{ c.font_size * 0.92 }}pt;
-    color: #6b7280;
   }
-  .contact-row a { color: #6b7280; text-decoration: none; }
-  .contact-sep { color: #d1d5db; }
+  .contact-item {
+    display: flex; align-items: center; gap: 6px;
+    color: #6b7280; font-size: {{ c.font_size * 0.92 }}pt;
+  }
+  /* Hide icons — minimal style shows text-only contacts */
+  .contact-item .icon { display: none; }
+  .photo {
+    width: {{ c.photo_size * 0.7 }}px; height: {{ c.photo_size * 0.7 }}px;
+    object-fit: cover; flex: 0 0 auto; margin-top: 6px;
+    {% if c.photo_shape == 'circle' %}border-radius: 50%;
+    {% elif c.photo_shape == 'rounded' %}border-radius: 10px;{% endif %}
+  }
 
   /* ---------- SECTION HEADING ---------- */
   h2.section {
@@ -59,100 +60,171 @@
     color: #374151;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    margin: {{ c.section_margin }}px 0 5px;
-    padding-bottom: 3px;
-    border-bottom: 0.8px solid #9ca3af;
+    margin: {{ c.section_margin }}px 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    {% if c.subtitle_style == 'underline' %}
+      padding-bottom: 3px;
+      border-bottom: 0.8px solid #9ca3af;
+    {% elif c.subtitle_style == 'overline' %}
+      padding-top: 3px;
+      border-top: 0.8px solid #9ca3af;
+    {% elif c.subtitle_style == 'double-line' %}
+      padding: 3px 0;
+      border-top: 0.8px solid #9ca3af;
+      border-bottom: 0.8px solid #9ca3af;
+    {% elif c.subtitle_style == 'box' %}
+      padding: 3px 8px;
+      border: 0.8px solid #9ca3af;
+    {% elif c.subtitle_style == 'pill' %}
+      padding: 3px 12px;
+      background: #374151;
+      color: white;
+      border-radius: 999px;
+      display: inline-flex;
+    {% elif c.subtitle_style == 'left-bar' %}
+      padding-left: 10px;
+      border-left: 2.5px solid #6b7280;
+    {% endif %}
   }
+  /* Hide section icons — minimal uses text-only headings */
+  h2.section .sec-icon { display: none; }
 
   /* ---------- ENTRIES ---------- */
-  .entry { margin-bottom: {{ c.entry_spacing }}px; break-inside: avoid; }
+  .entry { margin-bottom: {{ c.entry_spacing }}px; }
 
   .entry.layout-inline .meta-row {
     display: flex; justify-content: space-between; align-items: baseline;
     gap: 8px; margin-top: 2px;
   }
   .meta-date { flex: 0 0 auto; color: #6b7280; white-space: nowrap; font-size: {{ c.font_size * 0.9 }}pt; }
-  .meta-sub  { flex: 1; font-style: italic; color: #4b5563; font-size: {{ c.font_size * 0.95 }}pt; }
+  .meta-sub  { flex: 1; text-align: center; font-style: italic; color: #4b5563; font-size: {{ c.font_size * 0.95 }}pt; }
   .meta-loc  { flex: 0 0 auto; color: #6b7280; white-space: nowrap; font-size: {{ c.font_size * 0.9 }}pt; }
 
-  .entry.layout-left-col { display: grid; grid-template-columns: 110px 1fr; gap: 0 14px; }
-  .entry.layout-left-col .col-left { color: #6b7280; font-size: {{ c.font_size * 0.9 }}pt; line-height: 1.35; }
+  .entry.layout-left-col { display: grid; grid-template-columns: 120px 1fr; gap: 0 16px; }
+  .entry.layout-left-col .col-left { color: #6b7280; font-size: {{ c.font_size * 0.95 }}pt; line-height: 1.35; }
 
-  .entry.layout-right-col { display: grid; grid-template-columns: 1fr 110px; gap: 0 14px; }
-  .entry.layout-right-col .col-right { color: #6b7280; font-size: {{ c.font_size * 0.9 }}pt; line-height: 1.35; text-align: right; }
+  .entry.layout-right-col { display: grid; grid-template-columns: 1fr 120px; gap: 0 16px; }
+  .entry.layout-right-col .col-right { color: #6b7280; font-size: {{ c.font_size * 0.95 }}pt; line-height: 1.35; text-align: right; }
 
-  .entry-title { font-weight: 600; font-size: {{ c.entry_title_size }}pt; color: {{ c.text_color }}; }
-  .entry-sub   { font-style: italic; color: #4b5563; font-size: {{ c.font_size * 0.95 }}pt; margin-top: 1px; }
-  .entry-desc  { margin-top: 3px; color: #374151; }
+  .entry-title { font-weight: 700; font-size: {{ c.entry_title_size }}pt; color: {{ c.text_color }}; }
+  .entry-sub { font-style: italic; color: #4b5563; font-size: {{ c.font_size * 0.98 }}pt; margin-top: 1px; }
+  .entry-desc { margin-top: 3px; }
   .entry-desc ul { margin: 2px 0 2px 16px; padding: 0; }
   .entry-desc li { margin: 1px 0; }
-  .entry-desc p  { margin: 0 0 3px; }
+  .entry-desc p { margin: 0 0 3px; }
 
-  /* ---------- SKILLS ---------- */
-  .skills-group { margin-bottom: 5px; }
-  .skills-cat   { font-weight: 600; }
-  .skills-items { color: #374151; }
-
-  /* ---------- TWO-COLUMN MODE ---------- */
+  /* ---------- PAGE COLUMNS ---------- */
   {% if c.columns != 'single' %}
-  .modules-wrapper { column-count: 2; column-gap: 24px; }
+  .modules-wrapper { column-count: 2; column-gap: 20px; }
   h2.section { break-before: avoid; break-inside: avoid; }
   .entry { break-inside: avoid; }
   {% endif %}
 
+  /* ---------- SKILLS ---------- */
+  .skills-group { margin-bottom: 6px; }
+  .skills-cat { font-weight: 700; margin-bottom: 1px; }
+  .skills-items { color: #374151; }
+
+  /* ---------- MISC ---------- */
   a { color: #374151; text-decoration: none; }
   ul { margin: 4px 0 4px 18px; padding: 0; }
   li { margin: 1px 0; }
-  p  { margin: 0 0 3px; }
+  p { margin: 0 0 3px; }
   .page-break { page-break-after: always; }
 </style>
 </head>
 <body>
 
+{# ---------- Helpers ---------- #}
+{% macro contact_icon(name) %}
+  {% if name == 'location' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+  {% elif name == 'email' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+  {% elif name == 'phone' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+  {% elif name == 'website' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+  {% elif name == 'linkedin' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 0 0 2 3.5v17A1.5 1.5 0 0 0 3.5 22h17a1.5 1.5 0 0 0 1.5-1.5v-17A1.5 1.5 0 0 0 20.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 1 1 8.3 6.5a1.78 1.78 0 0 1-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0 0 13 14.19a.66.66 0 0 0 0 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 0 1 2.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>
+  {% elif name == 'github' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12a12 12 0 0 0 8.2 11.4c.6.11.82-.26.82-.58v-2c-3.34.73-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.3 3.5 1 .1-.78.42-1.3.76-1.6-2.66-.3-5.47-1.33-5.47-5.93 0-1.3.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.22 0 4.6-2.8 5.63-5.47 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+  {% elif name == 'wechat' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 13.5c-.8 0-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5-.7 1.5-1.5 1.5zm7 0c-.8 0-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5-.7 1.5-1.5 1.5zM9.5 4C5.4 4 2 6.8 2 10.3c0 2 1.1 3.8 3 5L4 17.5l2.6-1.4c.6.2 1.3.3 2 .4-.1-.4-.2-.9-.2-1.3 0-3.3 3.1-6 7-6h.9C15.4 6.3 12.7 4 9.5 4zm6 7c-3.3 0-6 2.2-6 5s2.7 5 6 5c.7 0 1.4-.1 2-.3L20 22l-.6-1.6c1.5-.9 2.6-2.3 2.6-4s-3-5-6.5-5zm-2 3.5c-.4 0-.8-.3-.8-.7s.3-.8.8-.8.8.3.8.8-.4.7-.8.7zm4 0c-.4 0-.8-.3-.8-.7s.3-.8.8-.8.8.3.8.8-.4.7-.8.7z"/></svg>
+  {% elif name == 'qq' %}
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 14c-.4-2.5-1.4-4.8-2.8-6.3.1-.4.2-.8.2-1.3 0-2.5-2.9-4.4-6.4-4.4s-6.4 1.9-6.4 4.4c0 .5.1.9.2 1.3C4.4 9.2 3.4 11.5 3 14c-.1.4-.1.8 0 1 .1.3.4.4.7.3.5-.2 1-.7 1.4-1.4 0 .1 0 .3.1.4.3 2.2 1.7 4.1 3.7 5-.4.4-.7.8-.8 1.3-.1.3 0 .6.3.7.2.1.5 0 .7-.1.6-.5 1.6-.9 2.4-.9h1c.8 0 1.8.3 2.4.9.2.2.5.3.7.2.3-.1.4-.4.3-.7-.1-.5-.4-1-.8-1.3 2.1-.9 3.5-2.9 3.7-5 0-.1 0-.3.1-.4.4.7.9 1.2 1.4 1.4.3.1.6 0 .7-.3.1-.2.1-.6 0-1zM9.5 9.5c-.5 0-1-.5-1-1.2s.4-1.3 1-1.3 1 .6 1 1.2c0 .7-.5 1.3-1 1.3zm5 0c-.5 0-1-.5-1-1.2s.4-1.3 1-1.3 1 .6 1 1.2c0 .7-.5 1.3-1 1.3z"/></svg>
+  {% endif %}
+{% endmacro %}
+
+{% macro section_icon(icon_name) %}
+  {% if icon_name == 'graduation-cap' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 8.2L12.3 3.5a.6.6 0 0 0-.6 0L2.4 8.2a.6.6 0 0 0 0 1.1l3.1 1.6v4a1 1 0 0 0 .4.8c1.6 1.2 3.7 1.9 6.1 1.9s4.5-.7 6.1-1.9a1 1 0 0 0 .4-.8v-4l2-1v4.8a.8.8 0 1 0 1.6 0V9.3c.2-.4.1-.9-.5-1.1zM12 15.4c-1.8 0-3.4-.5-4.6-1.3v-2.6L11.7 13c.2.1.4.1.6 0l4.3-2.2v2.6c-1.2.8-2.8 1.3-4.6 1.3z"/></svg>
+  {% elif icon_name == 'briefcase' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM10 4h4v2h-4V4zm10 15H4V8h16v11z"/></svg>
+  {% elif icon_name == 'folder-git-2' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM4 18V6h5.2l2 2H20v10H4z"/></svg>
+  {% elif icon_name == 'wrench' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.7 19l-9.1-9.1a5 5 0 0 0-6.4-6.4L10.6 7 9.2 8.4 5.9 5.1a5 5 0 0 0 6.4 6.4l9.1 9.1a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4z"/></svg>
+  {% elif icon_name == 'award' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm0-12a5 5 0 1 1 0 10 5 5 0 0 1 0-10zM7.4 14.3l-1 8.2a.6.6 0 0 0 .9.6L12 21l4.7 2a.6.6 0 0 0 .9-.6l-1-8.2a9 9 0 0 1-9.2.1z"/></svg>
+  {% elif icon_name == 'file-text' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
+  {% elif icon_name == 'user' %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5z"/></svg>
+  {% else %}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>
+  {% endif %}
+{% endmacro %}
+
 {# ---------- HEADER ---------- #}
 {% set P = resume.personal %}
 {% set default_order = ['full_name','job_title','summary_line','location','email','phone','website','linkedin','github','wechat','qq'] %}
-{% set order  = P.visible_fields if P.visible_fields else default_order %}
-{% set hidden = P.hidden_fields  if P.hidden_fields  else [] %}
+{% set order = P.visible_fields if P.visible_fields else default_order %}
+{% set hidden = P.hidden_fields if P.hidden_fields else [] %}
 {% set ns = namespace(personal_visible=false) %}
 {% for m in resume.modules %}
-  {% if m.type == 'personal_details' and not m.hidden %}{% set ns.personal_visible = true %}{% endif %}
+  {% if m.type == 'personal_details' and not m.hidden %}
+    {% set ns.personal_visible = true %}
+  {% endif %}
 {% endfor %}
-
 {% if ns.personal_visible %}
 <section class="resume-header">
-  {% if 'full_name' not in hidden and P.full_name %}
-    <h1>{{ P.full_name }}</h1>
-  {% endif %}
-  {% if 'job_title' not in hidden and P.job_title %}
-    <div class="job-title">{{ P.job_title }}</div>
-  {% endif %}
-  {% if 'summary_line' not in hidden and P.summary_line %}
-    <div style="font-size:{{ c.font_size * 0.95 }}pt;color:#4b5563;margin-bottom:4px;">{{ P.summary_line }}</div>
-  {% endif %}
-  <div class="contact-row">
-    {% set contacts = [] %}
-    {% for field in order %}
-      {% if field not in hidden %}
-        {% if field == 'location' and P.location %}{% set _ = contacts.append(P.location) %}
-        {% elif field == 'email' and P.email %}{% set _ = contacts.append(P.email) %}
-        {% elif field == 'phone' and P.phone %}{% set _ = contacts.append(P.phone) %}
-        {% elif field == 'website' and P.website %}{% set _ = contacts.append(P.website | replace('https://www.','') | replace('https://','')) %}
-        {% elif field == 'linkedin' and P.linkedin %}{% set _ = contacts.append(P.linkedin | replace('https://www.','') | replace('https://','')) %}
-        {% elif field == 'github' and P.github %}{% set _ = contacts.append(P.github | replace('https://www.','') | replace('https://','')) %}
-        {% elif field == 'wechat' and P.wechat %}{% set _ = contacts.append(P.wechat) %}
-        {% elif field == 'qq' and P.qq %}{% set _ = contacts.append(P.qq) %}
+<div class="header">
+  <div class="header-info">
+    <div class="contact-list">
+      {% for field in order %}
+        {% if field not in hidden and field == 'full_name' and P.full_name %}
+          <div class="contact-item" style="display:block;color:{{ c.text_color }};font-size:{{ c.font_size * 2.2 }}pt;font-weight:700;line-height:1.1;">{{ P.full_name }}</div>
+        {% elif field not in hidden and field == 'job_title' and P.job_title %}
+          <div class="contact-item" style="display:block;font-style:italic;font-weight:400;color:#4b5563;font-size:{{ c.font_size * 1.15 }}pt;">{{ P.job_title }}</div>
+        {% elif field not in hidden and field == 'summary_line' and P.summary_line %}
+          <div class="contact-item" style="display:block;color:#4b5563;">{{ P.summary_line }}</div>
+        {% elif field not in hidden and field == 'location' and P.location %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('location') }}</span><span>{{ P.location }}</span></div>
+        {% elif field not in hidden and field == 'email' and P.email %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('email') }}</span><span>{{ P.email }}</span></div>
+        {% elif field not in hidden and field == 'phone' and P.phone %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('phone') }}</span><span>{{ P.phone }}</span></div>
+        {% elif field not in hidden and field == 'website' and P.website %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('website') }}</span><a href="{{ P.website }}">{{ P.website }}</a></div>
+        {% elif field not in hidden and field == 'linkedin' and P.linkedin %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('linkedin') }}</span><a href="{{ P.linkedin }}">{{ P.linkedin | replace('https://www.','') | replace('https://','') }}</a></div>
+        {% elif field not in hidden and field == 'github' and P.github %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('github') }}</span><a href="{{ P.github }}">{{ P.github | replace('https://www.','') | replace('https://','') }}</a></div>
+        {% elif field not in hidden and field == 'wechat' and P.wechat %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('wechat') }}</span><span>{{ P.wechat }}</span></div>
+        {% elif field not in hidden and field == 'qq' and P.qq %}
+          <div class="contact-item"><span class="icon">{{ contact_icon('qq') }}</span><span>{{ P.qq }}</span></div>
         {% endif %}
-      {% endif %}
-    {% endfor %}
-    {% for c_item in contacts %}
-      {% if not loop.first %}<span class="contact-sep">·</span>{% endif %}
-      <span>{{ c_item }}</span>
-    {% endfor %}
+      {% endfor %}
+    </div>
   </div>
   {% if c.show_photo and P.photo_url %}
-    <img src="{{ P.photo_url }}" style="width:{{ c.photo_size * 0.7 }}px;height:{{ c.photo_size * 0.7 }}px;object-fit:cover;border-radius:{% if c.photo_shape=='circle'%}50%{% elif c.photo_shape=='rounded'%}8px{% else %}0{% endif %};margin-top:8px;" />
+    <img class="photo" src="{{ P.photo_url }}"/>
   {% endif %}
+</div>
 </section>
 {% endif %}
 
@@ -160,15 +232,20 @@
 {% set entry_layout = c.entry_layout | default('inline') %}
 <div class="modules-wrapper">
 {% for m in resume.modules %}
-  {% if not m.hidden and m.type != 'personal_details' %}
+  {% if not m.hidden %}
     {% if m.type == 'page_break' %}
       <div class="page-break"></div>
     {% else %}
     {% set visible_entries = [] %}
-    {% for e in m.entries %}{% if not e.get('hidden', false) %}{% set _ = visible_entries.append(e) %}{% endif %}{% endfor %}
+    {% for e in m.entries %}
+      {% if not e.get('hidden', false) %}{% set _ = visible_entries.append(e) %}{% endif %}
+    {% endfor %}
     {% if visible_entries %}
-      <section class="resume-module" data-module-id="{{ m.id }}">
-      <h2 class="section">{{ m.name }}</h2>
+      <section class="resume-module" data-module-id="{{ m.id }}" data-module-name="{{ m.name|e }}">
+      <h2 class="section">
+        <span class="sec-icon">{{ section_icon(m.icon) }}</span>
+        {{ m.name }}
+      </h2>
 
       {% if m.type == 'summary' %}
         <div class="entry-desc">
@@ -180,6 +257,7 @@
           {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), false, date_fmt) %}
           {% set sub = e.get('degree','') %}
           {% if e.get('field_of_study') %}{% set sub = sub + ', ' + e.field_of_study %}{% endif %}
+          {% if e.get('is_full_time') == false %}{% set sub = sub + ' (Part-time)' %}{% endif %}
           {% if entry_layout == 'left-col' %}
             <div class="entry layout-left-col">
               <div class="col-left">
@@ -189,7 +267,7 @@
               <div class="col-right">
                 <div class="entry-title">{{ e.get('school','') }}</div>
                 {% if sub %}<div class="entry-sub">{{ sub }}</div>{% endif %}
-                {% if e.get('gpa') %}<div>GPA: {{ e.gpa }}</div>{% endif %}
+                {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
             </div>
@@ -198,7 +276,7 @@
               <div class="col-left">
                 <div class="entry-title">{{ e.get('school','') }}</div>
                 {% if sub %}<div class="entry-sub">{{ sub }}</div>{% endif %}
-                {% if e.get('gpa') %}<div>GPA: {{ e.gpa }}</div>{% endif %}
+                {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
               <div class="col-right">
@@ -210,11 +288,11 @@
             <div class="entry layout-inline">
               <div class="entry-title">{{ e.get('school','') }}</div>
               <div class="meta-row">
-                <span class="meta-date">{{ drange }}</span>
-                <span class="meta-sub">{{ sub }}</span>
-                <span class="meta-loc">{{ e.get('location','') }}</span>
+                {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
+                {% if sub %}<span class="meta-sub">{{ sub }}</span>{% endif %}
+                {% if e.get('location') %}<span class="meta-loc">{{ e.location }}</span>{% endif %}
               </div>
-              {% if e.get('gpa') %}<div style="font-size:{{ c.font_size * 0.9 }}pt;color:#6b7280;">GPA: {{ e.gpa }}</div>{% endif %}
+              {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
             </div>
           {% endif %}
@@ -230,16 +308,16 @@
                 {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
               </div>
               <div class="col-right">
-                <div class="entry-title">{{ e.get('position','') }}</div>
-                {% if e.get('company') %}<div class="entry-sub">{{ e.company }}</div>{% endif %}
+                <div class="entry-title">{{ e.get('company','') }}</div>
+                {% if e.get('position') %}<div class="entry-sub">{{ e.position }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
             </div>
           {% elif entry_layout == 'right-col' %}
             <div class="entry layout-right-col">
               <div class="col-left">
-                <div class="entry-title">{{ e.get('position','') }}</div>
-                {% if e.get('company') %}<div class="entry-sub">{{ e.company }}</div>{% endif %}
+                <div class="entry-title">{{ e.get('company','') }}</div>
+                {% if e.get('position') %}<div class="entry-sub">{{ e.position }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
               <div class="col-right">
@@ -249,11 +327,11 @@
             </div>
           {% else %}
             <div class="entry layout-inline">
-              <div class="entry-title">{{ e.get('position','') }}</div>
+              <div class="entry-title">{{ e.get('company','') }}</div>
               <div class="meta-row">
-                <span class="meta-date">{{ drange }}</span>
-                <span class="meta-sub">{{ e.get('company','') }}</span>
-                <span class="meta-loc">{{ e.get('location','') }}</span>
+                {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
+                {% if e.get('position') %}<span class="meta-sub">{{ e.position }}</span>{% endif %}
+                {% if e.get('location') %}<span class="meta-loc">{{ e.location }}</span>{% endif %}
               </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
             </div>
@@ -269,16 +347,20 @@
                 {% if drange %}<div>{{ drange }}</div>{% endif %}
               </div>
               <div class="col-right">
-                <div class="entry-title">{{ e.get('name','') }}{% if e.get('role') %} · <span class="entry-sub" style="display:inline;">{{ e.role }}</span>{% endif %}</div>
-                {% if e.get('link') %}<div style="font-size:{{ c.font_size * 0.85 }}pt;color:#6b7280;">{{ e.link }}</div>{% endif %}
+                <div class="entry-title">
+                  {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
+                </div>
+                {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
             </div>
           {% elif entry_layout == 'right-col' %}
             <div class="entry layout-right-col">
               <div class="col-left">
-                <div class="entry-title">{{ e.get('name','') }}{% if e.get('role') %} · <span class="entry-sub" style="display:inline;">{{ e.role }}</span>{% endif %}</div>
-                {% if e.get('link') %}<div style="font-size:{{ c.font_size * 0.85 }}pt;color:#6b7280;">{{ e.link }}</div>{% endif %}
+                <div class="entry-title">
+                  {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
+                </div>
+                {% if e.get('role') %}<div class="entry-sub">{{ e.role }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
               <div class="col-right">
@@ -287,11 +369,12 @@
             </div>
           {% else %}
             <div class="entry layout-inline">
-              <div class="entry-title">{{ e.get('name','') }}{% if e.get('role') %} · <span class="entry-sub" style="display:inline;">{{ e.role }}</span>{% endif %}</div>
+              <div class="entry-title">
+                {{ e.get('name','') }}{% if e.get('link') %} <a href="{{ e.link }}" style="font-weight:normal;">↗</a>{% endif %}
+              </div>
               <div class="meta-row">
-                <span class="meta-date">{{ drange }}</span>
-                <span class="meta-sub"></span>
-                <span class="meta-loc">{% if e.get('link') %}{{ e.link }}{% endif %}</span>
+                {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
+                {% if e.get('role') %}<span class="meta-sub">{{ e.role }}</span>{% endif %}
               </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
             </div>
@@ -301,51 +384,83 @@
       {% elif m.type == 'skills' %}
         {% for e in visible_entries %}
           <div class="skills-group">
-            {% if e.get('category') %}<span class="skills-cat">{{ e.category }}{% if e.get('items') %}: {% endif %}</span>{% endif %}
-            {% if e.get('items') %}<span class="skills-items">{{ e.get('items') | join(', ') }}</span>{% endif %}
+            {% if e.get('category') %}<div class="skills-cat">{{ e.category }}</div>{% endif %}
+            <div class="skills-items">
+              {{ (e.get('items') or []) | join(', ') }}
+              {% if e.get('level') %} <em style="color:#6b7280;">({{ e.level }})</em>{% endif %}
+            </div>
           </div>
         {% endfor %}
 
       {% elif m.type == 'awards' %}
         {% for e in visible_entries %}
-          {% set drange = e.get('date','') %}
+          {% set date_str = e.get('date','') | date_fmt(date_fmt) %}
           {% if entry_layout == 'left-col' %}
             <div class="entry layout-left-col">
-              <div class="col-left">{% if drange %}<div>{{ drange }}</div>{% endif %}</div>
+              <div class="col-left">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
               <div class="col-right">
                 <div class="entry-title">{{ e.get('title','') }}</div>
                 {% if e.get('issuer') %}<div class="entry-sub">{{ e.issuer }}</div>{% endif %}
-                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
               </div>
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
+                <div class="entry-title">{{ e.get('title','') }}</div>
+                {% if e.get('issuer') %}<div class="entry-sub">{{ e.issuer }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
+              </div>
+              <div class="col-right">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
             </div>
           {% else %}
             <div class="entry layout-inline">
               <div class="entry-title">{{ e.get('title','') }}</div>
               <div class="meta-row">
-                <span class="meta-date">{{ drange }}</span>
-                <span class="meta-sub">{{ e.get('issuer','') }}</span>
-                <span class="meta-loc"></span>
+                {% if date_str %}<span class="meta-date">{{ date_str }}</span>{% endif %}
+                {% if e.get('issuer') %}<span class="meta-sub">{{ e.issuer }}</span>{% endif %}
+              </div>
+              {% if e.get('description') %}<div class="entry-desc">{{ e.description }}</div>{% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+      {% else %}
+        {% for e in visible_entries %}
+          {% set date_str = e.get('date','') | date_fmt(date_fmt) %}
+          {% if entry_layout == 'left-col' %}
+            <div class="entry layout-left-col">
+              <div class="col-left">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
+              <div class="col-right">
+                {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
+                {% if e.get('subtitle') %}<div class="entry-sub">{{ e.subtitle }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              </div>
+            </div>
+          {% elif entry_layout == 'right-col' %}
+            <div class="entry layout-right-col">
+              <div class="col-left">
+                {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
+                {% if e.get('subtitle') %}<div class="entry-sub">{{ e.subtitle }}</div>{% endif %}
+                {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
+              </div>
+              <div class="col-right">{% if date_str %}<div>{{ date_str }}</div>{% endif %}</div>
+            </div>
+          {% else %}
+            <div class="entry layout-inline">
+              {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
+              <div class="meta-row">
+                {% if date_str %}<span class="meta-date">{{ date_str }}</span>{% endif %}
+                {% if e.get('subtitle') %}<span class="meta-sub">{{ e.subtitle }}</span>{% endif %}
               </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
             </div>
           {% endif %}
         {% endfor %}
-
-      {% elif m.type == 'custom' %}
-        {% for e in visible_entries %}
-          <div class="entry layout-inline">
-            {% if e.get('title') %}<div class="entry-title">{{ e.title }}</div>{% endif %}
-            <div class="meta-row">
-              <span class="meta-date">{{ e.get('date','') }}</span>
-              <span class="meta-sub">{{ e.get('subtitle','') }}</span>
-              <span class="meta-loc"></span>
-            </div>
-            {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
-          </div>
-        {% endfor %}
       {% endif %}
       </section>
     {% endif %}
+    {% if m.id in c.page_breaks %}<div class="page-break"></div>{% endif %}
     {% endif %}
   {% endif %}
 {% endfor %}

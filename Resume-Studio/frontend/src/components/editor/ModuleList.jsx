@@ -55,10 +55,10 @@ function EntryRow({ mod, entry }) {
     <div ref={setNodeRef} style={style} className="flex flex-col">
       <div
         className={
-          'group flex items-center gap-1.5 px-2.5 py-2.5 rounded border transition-colors cursor-pointer ' +
+          'group flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg border transition-colors cursor-pointer ' +
           (open
-            ? 'border-cyan-400/60 bg-cyan-400/5'
-            : 'border-white/5 bg-ink-700 hover:border-cyan-400/30')
+            ? 'border-indigo-300 bg-indigo-50/60'
+            : 'border-gray-200 bg-white hover:border-indigo-200')
         }
         onClick={() => setOpen(!open)}
       >
@@ -69,7 +69,7 @@ function EntryRow({ mod, entry }) {
         >
           <GripVertical size={14}/>
         </button>
-        <div className={'flex-1 text-sm truncate ' + (entry.hidden ? 'text-zinc-600 line-through' : 'text-zinc-100')}>
+        <div className={'flex-1 text-sm truncate ' + (entry.hidden ? 'text-gray-300 line-through' : 'text-gray-900')}>
           {entryLabel(mod.type, entry)}
         </div>
         <button
@@ -154,13 +154,13 @@ function PersonalFieldRow({ field, value, visible, onToggle, onChange }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded border border-white/5 bg-ink-700/70 p-2.5">
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-gray-200 bg-white p-2.5">
       <div className="flex items-center gap-2 mb-2">
         <button className="text-zinc-600 hover:text-cyan-400 cursor-grab active:cursor-grabbing"
           {...attributes} {...listeners}>
           <GripVertical size={14}/>
         </button>
-        <div className="flex-1 text-[11px] text-zinc-300 uppercase tracking-[0.15em]">
+        <div className="flex-1 text-[11px] text-gray-700 uppercase tracking-[0.15em]">
           {t(`field.${field}`, field)}
         </div>
         <div className="w-32 shrink-0">
@@ -225,7 +225,7 @@ function PersonalDetailsCard({ mod }) {
 
   return (
     <div ref={setNodeRef} style={style} className="card overflow-visible">
-      <div className="flex items-center gap-2 px-3 py-3 border-b transition-colors border-cyan-400/30 bg-cyan-400/5">
+      <div className="flex items-center gap-2 px-3 py-3 border-b transition-colors border-indigo-200 bg-indigo-50/50">
         <button
           className="text-zinc-600 hover:text-cyan-400 cursor-grab active:cursor-grabbing"
           {...attributes} {...listeners}
@@ -233,7 +233,7 @@ function PersonalDetailsCard({ mod }) {
           <GripVertical size={16}/>
         </button>
         <User size={16} className="text-cyan-400"/>
-        <div className="flex-1 text-left text-[15px] font-semibold text-zinc-100 truncate">
+        <div className="flex-1 text-left text-[15px] font-semibold text-gray-900 truncate">
           {mod.name}
         </div>
         <button
@@ -321,7 +321,7 @@ function ModuleCard({ mod, defaultOpen = true }) {
       <div
         className={
           'flex items-center gap-2 px-3 py-3 border-b transition-colors cursor-pointer ' +
-          (isOpen ? 'border-cyan-400/30 bg-cyan-400/5' : 'border-white/5 hover:bg-white/5')
+          (isOpen ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 hover:bg-gray-50')
         }
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -335,7 +335,7 @@ function ModuleCard({ mod, defaultOpen = true }) {
 
         <div className="relative">
           <button
-            className="p-1.5 rounded hover:bg-white/10 text-cyan-400"
+            className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-500"
             onClick={(e) => { e.stopPropagation(); setPickingIcon(!pickingIcon) }}
           >
             <Icon name={mod.icon} size={17}/>
@@ -344,12 +344,12 @@ function ModuleCard({ mod, defaultOpen = true }) {
             <>
               <div className="fixed inset-0 z-20"
                 onClick={(e) => { e.stopPropagation(); setPickingIcon(false) }}/>
-              <div className="absolute z-30 top-full mt-1 left-0 bg-ink-800 border border-white/10 rounded-lg shadow-2xl p-2 grid grid-cols-6 gap-0.5 w-56">
+              <div className="absolute z-30 top-full mt-1 left-0 bg-white border border-gray-200 rounded-xl shadow-lg p-2 grid grid-cols-6 gap-0.5 w-56">
                 {ICON_CHOICES.map((n) => (
                   <button key={n}
                     className={
-                      'p-1.5 rounded hover:bg-cyan-400/10 ' +
-                      (n === mod.icon ? 'bg-cyan-400/15 text-cyan-300' : 'text-zinc-400 hover:text-cyan-300')
+                      'p-1.5 rounded-lg hover:bg-indigo-50 ' +
+                      (n === mod.icon ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-indigo-500')
                     }
                     onClick={(e) => {
                       e.stopPropagation()
@@ -367,7 +367,7 @@ function ModuleCard({ mod, defaultOpen = true }) {
 
         {editingName ? (
           <input autoFocus
-            className="flex-1 bg-ink-900 border border-cyan-400/50 rounded px-2 py-1 text-sm text-white focus:outline-none"
+            className="flex-1 bg-white border border-indigo-300 rounded-lg px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-indigo-500"
             value={mod.name}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => updateModule(mod.id, { name: e.target.value })}
@@ -375,11 +375,11 @@ function ModuleCard({ mod, defaultOpen = true }) {
             onKeyDown={(e) => e.key === 'Enter' && setEditingName(false)}/>
         ) : (
           <button
-            className="flex-1 text-left text-[15px] font-semibold text-zinc-100 truncate"
+            className="flex-1 text-left text-[15px] font-semibold text-gray-900 truncate"
             onDoubleClick={(e) => { e.stopPropagation(); setEditingName(true) }}
           >
             {mod.name}
-            <span className="text-zinc-600 font-normal ml-2 text-xs tabular-nums">
+            <span className="text-gray-400 font-normal ml-2 text-xs tabular-nums">
               {mod.entries.length}
             </span>
           </button>
@@ -421,14 +421,14 @@ function ModuleCard({ mod, defaultOpen = true }) {
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => addEntry(mod.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-sm text-cyan-400 border border-dashed border-white/10 rounded py-2.5 hover:border-cyan-400/50 hover:bg-cyan-400/5"
+              className="flex-1 flex items-center justify-center gap-1.5 text-sm text-indigo-500 border border-dashed border-gray-200 rounded-lg py-2.5 hover:border-indigo-300 hover:bg-indigo-50"
             >
               <Plus size={14}/> {t('module.new_entry')}
             </button>
             {hasLibraryPool && (
               <button
                 onClick={() => setShowLibrary(true)}
-                className="flex-1 flex items-center justify-center gap-1.5 text-sm text-zinc-300 border border-dashed border-white/10 rounded py-2.5 hover:border-cyan-400/50 hover:bg-white/5"
+                className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-500 border border-dashed border-gray-200 rounded-lg py-2.5 hover:border-gray-300 hover:bg-gray-50"
               >
                 <Library size={14}/> {t('module.from_library')}
               </button>
@@ -484,7 +484,7 @@ export default function ModuleList() {
         </SortableContext>
       </DndContext>
 
-      <div className="mt-2 pt-3 border-t border-white/5">
+      <div className="mt-2 pt-3 border-t border-gray-100">
         <div className="panel-title mb-2">{t('module.add_section')}</div>
         <div className="flex flex-wrap gap-1.5">
           {addable.map((type) => (

@@ -93,11 +93,16 @@ async function paginateRenderedHtml(fullHtml, paper) {
     if (!doc) return []
 
     doc.open()
-    doc.write(withBase(fullHtml))
+    // overflow:hidden prevents the scrollbar from appearing when content is taller
+    // than the iframe, which would otherwise reduce content width ~15px on Windows
+    // and cause text to reflow differently from the final render iframes.
+    doc.write(withBase(fullHtml, '<style>html,body{overflow:hidden!important;}</style>'))
     doc.close()
     await waitForFrameAssets(doc)
 
-    const bodyStyle = window.getComputedStyle(doc.body)
+    // Use the iframe's own window so getComputedStyle reads the iframe's CSS context
+    const iframeWin = iframe.contentWindow
+    const bodyStyle = iframeWin.getComputedStyle(doc.body)
     const paddingTop = parseFloat(bodyStyle.paddingTop || '0') || 0
     const paddingRight = parseFloat(bodyStyle.paddingRight || '0') || 0
     const paddingBottom = parseFloat(bodyStyle.paddingBottom || '0') || 0
@@ -140,6 +145,15 @@ async function paginateRenderedHtml(fullHtml, paper) {
       }
     })
 
+    // Section headings measured separately for anti-orphan detection
+    const headingRects = Array.from(doc.querySelectorAll('h2.section')).map((el) => {
+      const rect = el.getBoundingClientRect()
+      return {
+        top: Math.max(0, rect.top - bodyRect.top - paddingTop),
+        bottom: Math.max(0, rect.bottom - bodyRect.top - paddingTop),
+      }
+    })
+
     const starts = [0]
     let cursor = 0
     while (cursor < contentBottom - 1) {
@@ -152,11 +166,31 @@ async function paginateRenderedHtml(fullHtml, paper) {
       } else if (maxEnd >= contentBottom) {
         next = contentBottom
       } else {
-        // Walk back from maxEnd to avoid cutting through any block element
-        next = maxEnd
+        // Walk back from maxEnd: among all block elements that straddle the
+        // page boundary, pick the one with the LARGEST top (innermost element,
+        // closest to maxEnd). This avoids cutting through the element while
+        // minimising the blank space left at the bottom of the page.
+        // Using Math.min (outermost) was the old behaviour; it went back to the
+        // containing .entry div and left a large gap.
+        let walkBackTop = -1
         for (const r of blockRects) {
           if (r.top < maxEnd && r.bottom > maxEnd + 0.5 && r.top > cursor + 10) {
-            next = Math.min(next, r.top)
+            walkBackTop = Math.max(walkBackTop, r.top)
+          }
+        }
+        // If no element straddles the boundary (gap between sections), fall back to
+        // the natural page boundary rather than leaving `next` undefined (→ NaN).
+        next = walkBackTop > cursor + 10 ? walkBackTop : maxEnd
+
+        // Anti-orphan: if a section heading near the bottom of this page has no
+        // block content following it before the break, push the break to before it.
+        for (const hr of headingRects) {
+          if (hr.top <= cursor + 10 || hr.top >= next) continue
+          const hasContentAfter = blockRects.some(
+            (br) => br.top > hr.bottom - 1 && br.top < next
+          )
+          if (!hasContentAfter && hr.top > cursor + 10) {
+            next = Math.min(next, hr.top)
           }
         }
         next = Math.min(next, contentBottom)
@@ -176,6 +210,9 @@ async function paginateRenderedHtml(fullHtml, paper) {
         .filter((m) => m.bottom > start + 1 && m.top < end - 1)
         .map((m) => m.name)
 
+      // Clip exactly to this page's content range to prevent overlap with adjacent pages
+      const pageContentH = Math.min(end - start, contentHeight)
+
       const sliceStyle = `
         <style>
           html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: white !important; }
@@ -189,7 +226,7 @@ async function paginateRenderedHtml(fullHtml, paper) {
           }
           .page-content {
             width: ${contentWidth}px;
-            height: ${contentHeight}px;
+            height: ${pageContentH}px;
             overflow: hidden;
             position: relative;
           }
@@ -222,58 +259,6 @@ async function paginateRenderedHtml(fullHtml, paper) {
   }
 }
 
-function CornerMarks({ w, h }) {
-  const size = 12
-  const stroke = 'rgba(34,211,238,0.55)'
-  const o = -5
-  const mk = (cx, cy, key) => (
-    <g key={key}>
-      <line x1={cx-size} x2={cx+size} y1={cy} y2={cy} stroke={stroke} strokeWidth="0.6"/>
-      <line y1={cy-size} y2={cy+size} x1={cx} x2={cx} stroke={stroke} strokeWidth="0.6"/>
-      <circle cx={cx} cy={cy} r="2.5" fill="none" stroke={stroke} strokeWidth="0.6"/>
-    </g>
-  )
-  return (
-    <svg width={w - 2 * o} height={h - 2 * o} className="absolute pointer-events-none"
-         style={{ top: o, left: o }}>
-      {mk(-o, -o, 'tl')}{mk(w-o, -o, 'tr')}
-      {mk(-o, h-o, 'bl')}{mk(w-o, h-o, 'br')}
-    </svg>
-  )
-}
-
-function RulerTicks({ height }) {
-  const pxPerMm = 96 / 25.4
-  const totalMm = Math.floor(height / pxPerMm)
-  const marks = []
-  for (let mm = 0; mm <= totalMm; mm += 5) {
-    const len = mm % 10 === 0 ? 5 : 2.5
-    marks.push(<line key={mm} x1={0} x2={len} y1={mm*pxPerMm} y2={mm*pxPerMm}
-      stroke="rgba(34,211,238,0.3)" strokeWidth={mm%10===0?0.7:0.4}/>)
-  }
-  const labels = []
-  for (let cm = 3; cm*10 < totalMm; cm += 3) {
-    labels.push(<text key={'l'+cm} x={8} y={cm*10*pxPerMm+3}
-      fontSize="7" fontFamily="ui-monospace, monospace" fill="rgba(34,211,238,0.45)">{cm}</text>)
-  }
-  return <svg width={16} height={height} className="absolute top-0 -left-5 pointer-events-none select-none">
-    {marks}{labels}
-  </svg>
-}
-
-function CompassRose() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" className="inline-block">
-      <g stroke="rgba(34,211,238,0.7)" fill="none" strokeWidth="0.6">
-        <circle cx="7" cy="7" r="5.5"/>
-        <circle cx="7" cy="7" r="1.2"/>
-        <line x1="7" y1="0.5" x2="7" y2="13.5"/>
-        <line x1="0.5" y1="7" x2="13.5" y2="7"/>
-        <polygon points="7,1 7.8,5 7,7 6.2,5" fill="rgba(34,211,238,0.7)"/>
-      </g>
-    </svg>
-  )
-}
 
 function PageFrame({ html, paperW, paperH }) {
   const iframeRef = useRef(null)
@@ -477,71 +462,60 @@ export default function PdfPreview() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 relative bg-black overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(34,211,238,0.08) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-          maskImage: 'radial-gradient(ellipse at center, black 0%, rgba(0,0,0,0.4) 60%, transparent 90%)',
-          WebkitMaskImage: 'radial-gradient(ellipse at center, black 0%, rgba(0,0,0,0.4) 60%, transparent 90%)',
-        }}/>
+    <div className="flex-1 flex flex-col h-full min-h-0 relative bg-ink-900 overflow-hidden">
 
-      <div className="relative flex items-center justify-between px-4 h-11 border-b border-white/10 bg-zinc-950/90 backdrop-blur flex-shrink-0 z-10">
-        <div className="text-xs text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
-          <span className="font-mono">Codex</span>
-          <span className="text-zinc-600">·</span>
-          <span className="text-cyan-400 font-mono normal-case tracking-normal">
-            {paper.mm.w}×{paper.mm.h}mm
-          </span>
-          <span className="text-zinc-600">·</span>
-          <span className="text-cyan-400 font-mono normal-case tracking-normal">
+      <div className="relative flex items-center justify-between px-4 h-11 border-b border-gray-200 bg-white flex-shrink-0 z-10">
+        <div className="text-xs text-gray-500 flex items-center gap-2">
+          <span className="font-mono text-gray-400">{paper.mm.w}×{paper.mm.h} mm</span>
+          <span className="text-gray-300">·</span>
+          <span className="text-indigo-600 font-mono">
             {pages.length} {pages.length === 1 ? t('preview.folio') : t('preview.folios')}
           </span>
-          {loading && <Loader2 size={12} className="animate-spin text-cyan-400"/>}
+          {loading && <Loader2 size={12} className="animate-spin text-indigo-500"/>}
         </div>
         <div className="flex items-center gap-1">
           <button onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}
-            className="p-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-white" title="Zoom out">
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700" title="Zoom out">
             <ZoomOut size={14}/>
           </button>
-          <span className="tabular-nums text-xs text-zinc-400 w-10 text-center font-mono">
+          <span className="tabular-nums text-xs text-gray-500 w-10 text-center font-mono">
             {Math.round(zoom*100)}%
           </span>
           <button onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-            className="p-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-white" title="Zoom in">
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700" title="Zoom in">
             <ZoomIn size={14}/>
           </button>
           <button onClick={() => setZoom(0.6)}
-            className="p-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-white" title="Reset zoom">
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700" title="Reset zoom">
             <Maximize2 size={14}/>
           </button>
-          <div className="w-px h-5 bg-white/10 mx-2"/>
+          <div className="w-px h-5 bg-gray-200 mx-2"/>
           <button onClick={printPdf}
             className="btn-secondary"
             title="Print to PDF using browser's print dialog">
             <Printer size={12}/> Print
           </button>
           <button onClick={downloadPdf}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-b from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black text-xs font-semibold shadow-[0_0_12px_-2px_rgba(34,211,238,0.6)]">
+            className="btn-primary">
             <Download size={12}/> PDF
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="relative z-10 mx-6 mt-3 p-3 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-red-400 flex-shrink-0 mt-0.5"/>
+        <div className="relative z-10 mx-6 mt-3 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5"/>
           <div className="flex-1">
-            <div className="font-semibold text-red-300 mb-0.5">Error</div>
-            <div className="text-red-300/80 break-words whitespace-pre-wrap">{error}</div>
+            <div className="font-semibold text-red-700 mb-0.5">Error</div>
+            <div className="text-red-600 break-words whitespace-pre-wrap">{error}</div>
             <a
               href="http://localhost:8000/api/diagnostics"
               target="_blank"
               rel="noreferrer"
-              className="inline-block mt-2 text-cyan-400 hover:text-cyan-300 underline"
+              className="inline-block mt-2 text-indigo-600 hover:text-indigo-500 underline"
             >{t('preview.diagnostics')} → /api/diagnostics</a>
           </div>
-          <button onClick={() => setError('')} className="text-red-400 hover:text-red-300 text-xs">×</button>
+          <button onClick={() => setError('')} className="text-red-400 hover:text-red-600 text-xs">×</button>
         </div>
       )}
 
@@ -553,41 +527,32 @@ export default function PdfPreview() {
             const pageOverflow = overflow[i] ?? page.overflow
             return (
               <div key={i} className="relative" style={{ width: w, height: h }}>
-                <div className="absolute -top-9 left-0 right-0 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-cyan-400/70 font-mono">
-                    <CompassRose/>
-                    <span>Folio {toRoman(i + 1)}</span>
-                    <span className="text-zinc-700">·</span>
-                    <span className="text-zinc-500 tracking-widest">{paper.mm.w}×{paper.mm.h} MM</span>
+                <div className="absolute -top-7 left-0 right-0 flex items-center justify-between">
+                  <div className="text-[10px] text-gray-400 font-mono">
+                    Page {i + 1}
                   </div>
-                  <div className="text-[10px] uppercase tracking-[0.3em] font-mono">
+                  <div className="text-[10px] font-mono">
                     {pageOverflow ? (
-                      <span className="text-amber-400" title="Use the page planner in Customize to start a new page before a module.">
+                      <span className="text-amber-500" title="Use the page planner in Customize to start a new page before a module.">
                         ⚠ exceeds page
                       </span>
                     ) : (
-                      <span className="text-zinc-600">{i + 1} / {pages.length}</span>
+                      <span className="text-gray-400">{i + 1} / {pages.length}</span>
                     )}
                   </div>
                 </div>
 
                 {page.moduleNames.length > 0 && (
-                  <div className="absolute -bottom-8 left-0 right-0 text-[10px] text-zinc-600 font-mono truncate">
+                  <div className="absolute -bottom-7 left-0 right-0 text-[10px] text-gray-400 font-mono truncate">
                     {page.moduleNames.join(' · ')}
                   </div>
                 )}
-
-                <CornerMarks w={w} h={h}/>
-                <RulerTicks height={h}/>
 
                 <div className="origin-top-left relative"
                   style={{
                     width: paper.w, height: paper.h,
                     transform: `scale(${zoom})`,
-                    boxShadow:
-                      '0 0 0 1px rgba(255,255,255,0.06), ' +
-                      '0 30px 80px -20px rgba(0,0,0,0.9), ' +
-                      '0 0 40px -10px rgba(34,211,238,0.12)',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
                     background: 'white',
                     overflow: 'hidden',
                   }}>
@@ -602,11 +567,8 @@ export default function PdfPreview() {
           })}
 
           {pages.length > 0 && (
-            <div className="text-[10px] text-zinc-600 font-mono uppercase tracking-[0.3em] text-center pt-2">
-              {t('preview.end')}
-              <div className="text-zinc-700 normal-case tracking-normal italic mt-2">
-                {t('preview.ex_libris')} {resume.customize.paper}
-              </div>
+            <div className="text-[10px] text-gray-400 font-mono text-center pt-2">
+              {t('preview.end')} · {resume.customize.paper}
             </div>
           )}
         </div>

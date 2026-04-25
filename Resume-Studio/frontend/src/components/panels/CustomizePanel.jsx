@@ -18,7 +18,6 @@ const TEMPLATES = [
   { id: 'flowcv-style', name: 'FlowCV',  desc: 'Two-column · icon headings' },
   { id: 'classic',      name: 'Classic', desc: 'Single column · traditional' },
   { id: 'minimal',      name: 'Minimal', desc: 'Clean · no color · compact'  },
-  { id: 'sidebar',      name: 'Sidebar', desc: 'Colored sidebar · modern'    },
 ]
 
 const FONT_SIZES   = [9, 9.5, 10, 10.5, 11, 11.5, 12]
@@ -62,11 +61,8 @@ const SUBTITLE_STYLES = [
 function ModuleSection({ icon: Icon, label, children }) {
   return (
     <div className="card">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5">
-        <Icon size={13} className="text-cyan-400" />
-        <span className="text-[11px] font-semibold text-zinc-100 uppercase tracking-[0.18em]">
-          {label}
-        </span>
+      <div className="flex items-center gap-2 px-4 py-3.5 border-b border-gray-100">
+        <span className="text-sm font-semibold text-gray-900">{label}</span>
       </div>
       <div className="p-4 flex flex-col gap-5">{children}</div>
     </div>
@@ -77,11 +73,11 @@ function SubSection({ label, children }) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-white/5" />
-        <span className="text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-semibold">
+        <div className="h-px flex-1 bg-gray-100" />
+        <span className="text-[9px] uppercase tracking-[0.25em] text-gray-400 font-semibold">
           {label}
         </span>
-        <div className="h-px flex-1 bg-white/5" />
+        <div className="h-px flex-1 bg-gray-100" />
       </div>
       {children}
     </div>
@@ -214,59 +210,9 @@ function MinimalThumb() {
   )
 }
 
-function SidebarThumb() {
-  return (
-    <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      <rect width="100" height="130" fill="white" />
-      {/* Sidebar background */}
-      <rect x="0" y="0" width="32" height="130" fill="#1e3a5f" />
-      {/* Sidebar: name at top */}
-      <rect x="4" y="8"  width="24" height="3.5" rx="0.5" fill="white" opacity="0.9" />
-      <rect x="4" y="14" width="18" height="2"   rx="0.5" fill="white" opacity="0.5" />
-      {/* Sidebar divider */}
-      <rect x="4" y="19" width="24" height="0.5" fill="white" opacity="0.2" />
-      {/* Sidebar: contact section */}
-      <rect x="4" y="22" width="14" height="1.8" rx="0.5" fill="white" opacity="0.6" />
-      <rect x="4" y="26" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      <rect x="4" y="29" width="20" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      <rect x="4" y="32" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      {/* Sidebar: skills section */}
-      <rect x="4" y="38" width="12" height="1.8" rx="0.5" fill="white" opacity="0.6" />
-      <rect x="4" y="41" width="0.5" height="16" fill="white" opacity="0.2" />
-      <rect x="4" y="42" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      <rect x="4" y="45" width="18" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      <rect x="4" y="48" width="24" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      <rect x="4" y="51" width="20" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      {/* Sidebar: education */}
-      <rect x="4" y="58" width="18" height="1.8" rx="0.5" fill="white" opacity="0.6" />
-      <rect x="4" y="62" width="22" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      <rect x="4" y="65" width="18" height="1.3" rx="0.5" fill="white" opacity="0.35" />
-      {/* Right main content */}
-      <rect x="38" y="8"  width="55" height="4"   rx="0.5" fill="#1e3a5f" opacity="0.85" />
-      <rect x="38" y="14" width="40" height="2.5" rx="0.5" fill="#6b7280" />
-      {/* Main: experience heading */}
-      <rect x="38" y="22" width="30" height="2.5" rx="0.5" fill="#374151" />
-      <rect x="38" y="25.5" width="55" height="0.5" fill="#e5e7eb" />
-      <rect x="38" y="29" width="55" height="2"   rx="0.5" fill="#374151" />
-      <rect x="38" y="33" width="50" height="1.5" rx="0.5" fill="#9ca3af" />
-      <rect x="38" y="37" width="52" height="1.5" rx="0.5" fill="#9ca3af" />
-      <rect x="38" y="42" width="55" height="2"   rx="0.5" fill="#374151" />
-      <rect x="38" y="46" width="48" height="1.5" rx="0.5" fill="#9ca3af" />
-      <rect x="38" y="50" width="52" height="1.5" rx="0.5" fill="#9ca3af" />
-      {/* Main: projects heading */}
-      <rect x="38" y="58" width="26" height="2.5" rx="0.5" fill="#374151" />
-      <rect x="38" y="61.5" width="55" height="0.5" fill="#e5e7eb" />
-      <rect x="38" y="65" width="55" height="2"   rx="0.5" fill="#374151" />
-      <rect x="38" y="69" width="50" height="1.5" rx="0.5" fill="#9ca3af" />
-      <rect x="38" y="73" width="44" height="1.5" rx="0.5" fill="#9ca3af" />
-    </svg>
-  )
-}
-
 function TemplateThumbnail({ id }) {
-  if (id === 'classic')  return <ClassicThumb />
-  if (id === 'minimal')  return <MinimalThumb />
-  if (id === 'sidebar')  return <SidebarThumb />
+  if (id === 'classic') return <ClassicThumb />
+  if (id === 'minimal') return <MinimalThumb />
   return <FlowCVThumb />
 }
 
@@ -286,7 +232,7 @@ function TemplateCarousel({ current, onApply }) {
         {/* Left arrow */}
         <button
           onClick={() => scroll(-1)}
-          className="flex-none w-7 h-7 flex items-center justify-center rounded border border-white/10 bg-white/3 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+          className="flex-none w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition-colors"
         >
           <ChevronLeft size={14} />
         </button>
@@ -306,21 +252,21 @@ function TemplateCarousel({ current, onApply }) {
                 className={[
                   'flex-none w-[130px] cursor-pointer rounded-lg border overflow-hidden transition-all',
                   isSel
-                    ? 'border-cyan-400 shadow-[0_0_14px_-4px_rgba(34,211,238,0.55)]'
-                    : 'border-white/10 hover:border-white/25',
+                    ? 'border-indigo-400 shadow-[0_0_14px_-4px_rgba(99,102,241,0.3)]'
+                    : 'border-gray-200 hover:border-gray-300',
                 ].join(' ')}
               >
                 <div className="aspect-[5/6.5] bg-white overflow-hidden">
                   <TemplateThumbnail id={tpl.id} />
                 </div>
-                <div className="flex items-center justify-between px-2 py-1.5 bg-zinc-900 border-t border-white/5">
+                <div className="flex items-center justify-between px-2 py-1.5 bg-gray-50 border-t border-gray-100">
                   <div>
-                    <div className="text-[11px] text-zinc-200 font-medium leading-tight">{tpl.name}</div>
-                    <div className="text-[9px] text-zinc-500 leading-tight mt-0.5">{tpl.desc}</div>
+                    <div className="text-[11px] text-gray-900 font-medium leading-tight">{tpl.name}</div>
+                    <div className="text-[9px] text-gray-400 leading-tight mt-0.5">{tpl.desc}</div>
                   </div>
                   {isApplied && (
-                    <div className="w-4 h-4 rounded-full bg-cyan-400/20 flex items-center justify-center flex-none ml-1">
-                      <Check size={9} className="text-cyan-400" />
+                    <div className="w-4 h-4 rounded-full bg-indigo-100 flex items-center justify-center flex-none ml-1">
+                      <Check size={9} className="text-indigo-600" />
                     </div>
                   )}
                 </div>
@@ -332,7 +278,7 @@ function TemplateCarousel({ current, onApply }) {
         {/* Right arrow */}
         <button
           onClick={() => scroll(1)}
-          className="flex-none w-7 h-7 flex items-center justify-center rounded border border-white/10 bg-white/3 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+          className="flex-none w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition-colors"
         >
           <ChevronRight size={14} />
         </button>
@@ -343,10 +289,10 @@ function TemplateCarousel({ current, onApply }) {
         onClick={() => onApply(pending)}
         disabled={pending === current}
         className={[
-          'w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-semibold transition-all',
+          'w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors',
           pending !== current
-            ? 'bg-gradient-to-b from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black shadow-[0_0_12px_-2px_rgba(34,211,238,0.6)] hover:-translate-y-px'
-            : 'bg-white/5 border border-white/10 text-zinc-500 cursor-not-allowed',
+            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed',
         ].join(' ')}
       >
         <Check size={12} />
@@ -372,19 +318,19 @@ function SortableSection({ mod }) {
       ref={setNodeRef}
       style={style}
       className={[
-        'flex items-center gap-2 px-2.5 py-2 rounded border transition-colors',
+        'flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors',
         mod.hidden
-          ? 'border-white/5 bg-ink-800 opacity-50'
-          : 'border-white/10 bg-ink-800 hover:border-white/20',
+          ? 'border-gray-100 bg-white opacity-50'
+          : 'border-gray-200 bg-white hover:border-gray-300',
       ].join(' ')}
     >
       <button
-        className="text-zinc-600 hover:text-cyan-400 cursor-grab active:cursor-grabbing flex-none"
+        className="text-gray-300 hover:text-indigo-500 cursor-grab active:cursor-grabbing flex-none"
         {...attributes} {...listeners}
       >
         <GripVertical size={13} />
       </button>
-      <span className="flex-1 text-xs text-zinc-300 truncate">{mod.name}</span>
+      <span className="flex-1 text-xs text-gray-800 truncate">{mod.name}</span>
       {mod.hidden && <EyeOff size={11} className="text-zinc-600 flex-none" />}
     </div>
   )
@@ -412,7 +358,7 @@ function SectionReorder() {
       {personalMod && (
         <div className="flex items-center gap-2 px-2.5 py-2 rounded border border-cyan-400/25 bg-cyan-400/5">
           <Lock size={11} className="text-cyan-400 flex-none" />
-          <span className="flex-1 text-xs text-zinc-300 truncate">{personalMod.name}</span>
+          <span className="flex-1 text-xs text-gray-800 truncate">{personalMod.name}</span>
           <span className="text-[9px] text-cyan-400/50 uppercase tracking-widest flex-none">
             pinned
           </span>

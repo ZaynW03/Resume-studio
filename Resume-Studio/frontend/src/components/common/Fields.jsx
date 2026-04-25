@@ -53,7 +53,7 @@ export function Slider({ label, value, onChange, min, max, step = 1, unit = '' }
       {label && (
         <div className="panel-title mb-1.5 flex justify-between items-center normal-case tracking-normal">
           <span className="uppercase tracking-[0.18em]">{label}</span>
-          <span className="text-cyan-400 font-mono text-[11px]">{value}{unit}</span>
+          <span className="text-indigo-500 font-mono text-[11px]">{value}{unit}</span>
         </div>
       )}
       <input
@@ -67,6 +67,66 @@ export function Slider({ label, value, onChange, min, max, step = 1, unit = '' }
   )
 }
 
+export function StepSlider({ label, value, onChange, options }) {
+  const idx = options.findIndex((o) => {
+    const v = typeof o === 'number' ? o : (o.id ?? o.value)
+    return v === value
+  })
+  const safeIdx = idx < 0 ? 0 : idx
+
+  const prev = () => {
+    if (safeIdx <= 0) return
+    const o = options[safeIdx - 1]
+    onChange(typeof o === 'number' ? o : (o.id ?? o.value))
+  }
+  const next = () => {
+    if (safeIdx >= options.length - 1) return
+    const o = options[safeIdx + 1]
+    onChange(typeof o === 'number' ? o : (o.id ?? o.value))
+  }
+  const onRange = (e) => {
+    const i = parseInt(e.target.value, 10)
+    const o = options[i]
+    onChange(typeof o === 'number' ? o : (o.id ?? o.value))
+  }
+
+  const labels = options.map((o) =>
+    typeof o === 'number' ? String(o) : typeof o === 'string' ? o : o.label
+  )
+  const currentLabel = labels[safeIdx] ?? String(value)
+
+  return (
+    <div>
+      {label && (
+        <div className="panel-title mb-2 flex justify-between items-center normal-case tracking-normal">
+          <span className="uppercase tracking-[0.18em]">{label}</span>
+          <span className="text-indigo-600 font-semibold text-xs">{currentLabel}</span>
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <button type="button" className="step-btn" onClick={prev} disabled={safeIdx <= 0}>−</button>
+        <div className="flex-1 flex flex-col gap-1">
+          <input
+            type="range"
+            className="step-slider"
+            min={0}
+            max={options.length - 1}
+            step={1}
+            value={safeIdx}
+            onChange={onRange}
+          />
+          <div className="flex justify-between px-0.5">
+            {labels.map((l, i) => (
+              <span key={i} className="text-[9px] text-gray-300 leading-none">{l}</span>
+            ))}
+          </div>
+        </div>
+        <button type="button" className="step-btn" onClick={next} disabled={safeIdx >= options.length - 1}>+</button>
+      </div>
+    </div>
+  )
+}
+
 export function Toggle({ label, value, onChange }) {
   return (
     <button
@@ -74,11 +134,11 @@ export function Toggle({ label, value, onChange }) {
       onClick={() => onChange(!value)}
       className="flex items-center justify-between w-full text-left cursor-pointer select-none group"
     >
-      <span className="text-xs text-zinc-400 group-hover:text-zinc-200">{label}</span>
+      <span className="text-xs text-gray-600 group-hover:text-gray-900">{label}</span>
       <span
         className={
-          'relative w-9 h-5 rounded-full transition-colors ' +
-          (value ? 'bg-cyan-400 shadow-[0_0_10px_-2px_rgba(34,211,238,0.8)]' : 'bg-zinc-700')
+          'relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ml-2 ' +
+          (value ? 'bg-indigo-500' : 'bg-gray-200')
         }
       >
         <span
@@ -92,7 +152,7 @@ export function Toggle({ label, value, onChange }) {
   )
 }
 
-export function Button({ children, onClick, variant = 'primary', className = '', ...rest }) {
+export function Button({ children, onClick, variant = 'primary', className = '', disabled, ...rest }) {
   const map = {
     primary:   'btn-primary',
     secondary: 'btn-secondary',
@@ -103,7 +163,8 @@ export function Button({ children, onClick, variant = 'primary', className = '',
     <button
       type="button"
       onClick={onClick}
-      className={`${map[variant] || map.primary} ${className}`}
+      disabled={disabled}
+      className={`${map[variant] || map.primary} disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       {...rest}
     >
       {children}
@@ -114,11 +175,11 @@ export function Button({ children, onClick, variant = 'primary', className = '',
 export function ColorSwatch({ label, value, onChange }) {
   return (
     <label className="flex items-center justify-between">
-      <span className="text-xs text-zinc-400">{label}</span>
+      <span className="text-xs text-gray-600">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[10px] text-zinc-500">{value}</span>
+        <span className="font-mono text-[10px] text-gray-400">{value}</span>
         <span
-          className="relative inline-block w-7 h-7 rounded border border-white/10 overflow-hidden"
+          className="relative inline-block w-7 h-7 rounded border border-gray-200 overflow-hidden"
           style={{ background: value }}
         >
           <input

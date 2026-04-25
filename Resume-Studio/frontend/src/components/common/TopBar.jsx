@@ -4,20 +4,29 @@ import { api } from '../../api'
 import { Button } from './Fields'
 import {
   Upload, FilePlus2, Save, Languages, Loader2,
-  ChevronDown, Compass,
+  ChevronDown, User, FileEdit, Palette, Sparkles,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 
+const TABS = [
+  { id: 'profile',   label: 'Overview',  Icon: User },
+  { id: 'content',   label: 'Content',   Icon: FileEdit },
+  { id: 'customize', label: 'Customize', Icon: Palette },
+  { id: 'ai',        label: 'AI Tools',  Icon: Sparkles },
+]
+
 export default function TopBar({ onImportParsed }) {
   const t = useT()
-  const resume    = useResumeStore((s) => s.resume)
-  const savedAt   = useResumeStore((s) => s.savedAt)
-  const saving    = useResumeStore((s) => s.saving)
-  const setTitle  = useResumeStore((s) => s.setTitle)
-  const setLang   = useResumeStore((s) => s.setLanguage)
-  const save      = useResumeStore((s) => s.save)
-  const reset     = useResumeStore((s) => s.resetResume)
-  const load      = useResumeStore((s) => s.load)
+  const resume       = useResumeStore((s) => s.resume)
+  const savedAt      = useResumeStore((s) => s.savedAt)
+  const saving       = useResumeStore((s) => s.saving)
+  const setTitle     = useResumeStore((s) => s.setTitle)
+  const setLang      = useResumeStore((s) => s.setLanguage)
+  const save         = useResumeStore((s) => s.save)
+  const reset        = useResumeStore((s) => s.resetResume)
+  const load         = useResumeStore((s) => s.load)
+  const activeTab    = useResumeStore((s) => s.activeTab)
+  const setActiveTab = useResumeStore((s) => s.setActiveTab)
 
   const [resumes, setResumes] = useState([])
   const [uploading, setUploading] = useState(false)
@@ -34,7 +43,6 @@ export default function TopBar({ onImportParsed }) {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  // Auto-save after the resume stops changing
   const lastSaved = useRef(null)
   useEffect(() => {
     if (lastSaved.current === resume) return
@@ -65,137 +73,118 @@ export default function TopBar({ onImportParsed }) {
   }
 
   return (
-    <div className="relative h-14 bg-ink-800 border-b border-white/5 flex items-center px-4 gap-3 z-20 flex-shrink-0">
-      {/* Measurement ruler strip at the bottom edge */}
-      <div className="absolute left-0 right-0 bottom-0 h-1.5 pointer-events-none flex items-end">
-        {Array.from({ length: 60 }).map((_, i) => (
-          <span key={i}
-            className="flex-1 border-l border-cyan-400/20"
-            style={{ height: i % 5 === 0 ? 6 : 3 }}/>
-        ))}
-      </div>
-
+    <div className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-3 z-20 flex-shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5">
-        <div className="relative">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-[0_0_14px_-2px_rgba(34,211,238,0.7)]">
-            <Compass size={16} className="text-black"/>
-          </div>
-          <div className="absolute inset-0 rounded-md border border-cyan-400/30 animate-pulse pointer-events-none"/>
+      <div className="flex items-center gap-2 mr-2 flex-shrink-0">
+        <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+          <span className="text-white text-xs font-bold leading-none">R</span>
         </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-[11px] tracking-[0.25em] text-cyan-400/80 uppercase font-mono">Codex</span>
-          <span className="text-sm font-bold tracking-tight text-white -mt-0.5">
-            resume<span className="text-cyan-400">·</span>studio
-          </span>
-        </div>
+        <span className="text-sm font-semibold text-gray-900 tracking-tight whitespace-nowrap">Resume Studio</span>
       </div>
 
-      <div className="w-px h-6 bg-white/10"/>
+      <div className="w-px h-5 bg-gray-200 flex-shrink-0"/>
 
-      {/* Title */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-mono">
-          {t('topbar.title')}
-        </span>
-        <input
-          value={resume.title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="bg-transparent border border-transparent hover:border-white/10 focus:border-cyan-400/60 focus:bg-ink-900 focus:outline-none rounded px-2 py-1 text-sm text-zinc-100 w-56 italic transition-colors"
-          placeholder="Untitled resume"
-        />
-      </div>
-
-      {/* Language */}
-      <div className="flex items-center gap-1.5">
-        <Languages size={12} className="text-zinc-500"/>
-        <select
-          value={resume.language}
-          onChange={(e) => setLang(e.target.value)}
-          className="bg-transparent border border-white/10 hover:border-white/20 rounded px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-cyan-400/60 font-mono cursor-pointer"
-        >
-          <option value="en" className="bg-ink-800">EN</option>
-          <option value="zh" className="bg-ink-800">中文</option>
-        </select>
-      </div>
-
-      {/* Recent files */}
-      <div ref={menuRef} className="relative">
-        <button
-          onClick={() => setMenuOpen((o) => !o)}
-          className="btn-ghost flex items-center gap-1"
-        >
-          {t('topbar.open')} <ChevronDown size={12}/>
-        </button>
-        {menuOpen && (
-          <div className="absolute top-full left-0 mt-1 w-64 bg-ink-800 border border-white/10 rounded-lg shadow-2xl py-1 max-h-80 overflow-y-auto z-30">
-            <div className="px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-mono border-b border-white/5">
-              {t('topbar.manuscripts')}
-            </div>
-            {resumes.length === 0 && (
-              <div className="px-3 py-2 text-xs text-zinc-500">{t('topbar.no_saved')}</div>
-            )}
-            {resumes.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => { load(r.id); setMenuOpen(false) }}
-                className="w-full text-left px-3 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-white flex flex-col"
-              >
-                <span className="font-medium truncate">{r.title}</span>
-                {r.updated_at && (
-                  <span className="text-zinc-500 text-[10px] font-mono">
-                    {new Date(r.updated_at).toLocaleString()}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Tab navigation */}
+      <nav className="flex items-center gap-0.5">
+        {TABS.map(({ id, label, Icon }) => {
+          const active = activeTab === id
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={[
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+                active
+                  ? 'bg-indigo-50 text-indigo-600'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100',
+              ].join(' ')}
+            >
+              <Icon size={14}/>
+              {label}
+            </button>
+          )
+        })}
+      </nav>
 
       <div className="flex-1"/>
 
-      {/* Save LED */}
-      <div className="flex items-center gap-1.5 text-[10px] tabular-nums font-mono">
-        {saving ? (
-          <>
-            <Loader2 size={11} className="animate-spin text-cyan-400"/>
-            <span className="text-cyan-400 tracking-[0.2em]">{t('topbar.saving')}</span>
-          </>
-        ) : savedAt ? (
-          <>
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping"/>
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400"/>
-            </span>
-            <span className="text-green-400 tracking-[0.2em] uppercase">{t('topbar.saved')}</span>
-          </>
-        ) : (
-          <>
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600"/>
-            <span className="text-zinc-500 tracking-[0.2em] uppercase">{t('topbar.idle')}</span>
-          </>
-        )}
+      {/* Right controls */}
+      <div className="flex items-center gap-2">
+        {/* Save status */}
+        <div className="flex items-center gap-1.5 text-[11px] font-mono text-gray-400">
+          {saving ? (
+            <><Loader2 size={11} className="animate-spin text-indigo-500"/><span className="text-indigo-500">Saving…</span></>
+          ) : savedAt ? (
+            <><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"/><span>Saved</span></>
+          ) : null}
+        </div>
+
+        {/* Language */}
+        <div className="flex items-center gap-1">
+          <Languages size={12} className="text-gray-400"/>
+          <select
+            value={resume.language}
+            onChange={(e) => setLang(e.target.value)}
+            className="bg-transparent border-none text-xs text-gray-500 focus:outline-none cursor-pointer"
+          >
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+
+        {/* Open recent */}
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="btn-ghost flex items-center gap-1"
+          >
+            Open <ChevronDown size={12}/>
+          </button>
+          {menuOpen && (
+            <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-80 overflow-y-auto z-30">
+              <div className="px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-gray-400 border-b border-gray-100">
+                Recent Resumes
+              </div>
+              {resumes.length === 0 && (
+                <div className="px-3 py-2 text-xs text-gray-400">{t('topbar.no_saved')}</div>
+              )}
+              {resumes.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => { load(r.id); setMenuOpen(false) }}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex flex-col"
+                >
+                  <span className="font-medium truncate">{r.title}</span>
+                  {r.updated_at && (
+                    <span className="text-gray-400 text-[10px]">
+                      {new Date(r.updated_at).toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Button variant="ghost" onClick={onNew}>
+          <FilePlus2 size={13}/> New
+        </Button>
+
+        <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+          <Upload size={13}/>{uploading ? 'Parsing…' : 'Import'}
+        </Button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".pdf,image/*"
+          className="hidden"
+          onChange={onUpload}
+        />
+
+        <Button onClick={() => save().then(refreshList)}>
+          <Save size={13}/> Save
+        </Button>
       </div>
-
-      <Button variant="ghost" onClick={onNew}>
-        <FilePlus2 size={13}/> {t('topbar.new')}
-      </Button>
-
-      <Button variant="secondary" onClick={() => fileInput.current?.click()}>
-        <Upload size={13}/>{uploading ? t('topbar.parsing') : t('topbar.import')}
-      </Button>
-      <input
-        ref={fileInput}
-        type="file"
-        accept=".pdf,image/*"
-        className="hidden"
-        onChange={onUpload}
-      />
-
-      <Button onClick={() => save().then(refreshList)}>
-        <Save size={13}/> {t('topbar.save')}
-      </Button>
     </div>
   )
 }

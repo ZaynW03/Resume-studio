@@ -19,7 +19,22 @@
       "Bash(curl -s http://localhost:8000/api/resume/a27688ba23bc)",
       "Bash(curl *)",
       "Bash(.venv/Scripts/python.exe -c ' *)",
-      "Bash(.venv/Scripts/python.exe *)"
+      "Bash(.venv/Scripts/python.exe *)",
+      "Bash(git -C D:/Resume-Studio log --oneline -5)",
+      "Bash(git -C D:/Resume-Studio status)",
+      "Bash(.venv/Scripts/python -c \"import cv2; print\\('cv2 version:', cv2.__version__\\)\")",
+      "Bash(.venv/Scripts/python -m pip list)",
+      "Bash(.venv/Scripts/pip list *)",
+      "Bash(.venv/Scripts/pip install *)",
+      "PowerShell(cd D:\\\\Resume-Studio\\\\Resume-Studio\\\\backend; $result = & \".\\\\.venv\\\\Scripts\\\\pip.exe\" install \"opencv-python\" 2>&1; $result; Write-Host \"Exit: $LASTEXITCODE\")",
+      "Bash(.venv/Scripts/python -c \"import cv2; print\\('cv2 OK:', cv2.__version__\\)\")",
+      "Bash(PYTHONPATH=. .venv/Scripts/uvicorn app.main:app --port 8000)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,':', v\\) for k,v in d.items\\(\\)]\")",
+      "Bash(.venv/Scripts/python -c \"import cv2; import numpy as np; print\\('cv2', cv2.__version__, '| numpy', np.__version__\\)\")",
+      "Bash(.venv/Scripts/python -c ' *)",
+      "Bash(python3 -c ' *)",
+      "Bash(del *)",
+      "Bash(npx vite *)"
     ]
   }
 }

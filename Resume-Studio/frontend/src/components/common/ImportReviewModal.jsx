@@ -110,7 +110,7 @@ function PoolGroup({ poolKey, entries, selected, toggleSelect, duplicates }) {
   return (
     <section className="card relative z-0 overflow-visible">
       <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-white/5 bg-ink-900/50 rounded-t-[8px]">
-        <div className="text-[11px] font-semibold text-zinc-100 uppercase tracking-[0.15em]">
+        <div className="text-[11px] font-semibold text-gray-900 uppercase tracking-[0.15em]">
           {POOL_LABELS[poolKey]}
         </div>
         <div className="text-xs text-zinc-500 tabular-nums">
@@ -145,7 +145,7 @@ function PoolGroup({ poolKey, entries, selected, toggleSelect, duplicates }) {
               </button>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="text-sm font-medium text-zinc-100 truncate">{s.title}</div>
+                  <div className="text-sm font-medium text-gray-900 truncate">{s.title}</div>
                   {dup && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider bg-amber-400/10 text-amber-400 border border-amber-400/20">
                       duplicate
@@ -267,7 +267,7 @@ export default function ImportReviewModal({ parsedResume, onClose, onConfirm }) 
         <div className="relative z-20 flex items-center gap-3 px-5 h-14 border-b border-white/5 bg-ink-800 rounded-t-lg flex-shrink-0">
           <Sparkles size={16} className="text-cyan-400"/>
           <div>
-            <div className="text-sm font-semibold text-zinc-100">Add to your profile library?</div>
+            <div className="text-sm font-semibold text-gray-900">Add to your profile library?</div>
             <div className="text-[11px] text-zinc-500">
               Selected entries will be saved so you can reuse them across different resumes.
             </div>

@@ -72,9 +72,9 @@ function PersonalPane({ profile, setProfile, setDirty, onSaveProfile }) {
 
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-white/5">
-        <User size={13} className="text-cyan-400"/>
-        <div className="text-[11px] font-semibold text-zinc-100 uppercase tracking-[0.15em]">
+      <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100">
+        <User size={13} className="text-indigo-500"/>
+        <div className="text-[11px] font-semibold text-gray-900 uppercase tracking-[0.15em]">
           Personal details
         </div>
         <div className="flex-1"/>
@@ -101,7 +101,7 @@ function PersonalPane({ profile, setProfile, setDirty, onSaveProfile }) {
                 onError={(e) => { e.currentTarget.style.display = 'none'; setPhotoErr(`Image failed to load from ${P.photo_url} — backend not running or proxy misconfigured.`) }}
                 className="w-16 h-16 rounded-full object-cover border border-white/10"/>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-ink-800 border border-white/10 flex items-center justify-center text-zinc-600">
+              <div className="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400">
                 <User size={24}/>
               </div>
             )}
@@ -177,8 +177,8 @@ function EntryCard({ poolKey, entry, onChange, onRemove, onImport }) {
 
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-ink-900/50">
-        <div className="flex-1 text-sm font-medium text-zinc-100 truncate">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50/80">
+        <div className="flex-1 text-sm font-medium text-gray-900 truncate">
           {primary ? (entry[primary] || 'Untitled') : 'Summary'}
           {secondary && entry[secondary] ? <span className="text-zinc-500"> · {entry[secondary]}</span> : null}
         </div>
@@ -311,10 +311,10 @@ export default function ProfilePanel() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="sticky top-0 z-20 px-4 py-4 bg-ink-900/95 backdrop-blur supports-[backdrop-filter]:bg-ink-900/85 border-b border-white/5">
+      <div className="sticky top-0 z-20 px-4 py-4 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-zinc-100">Profile library</div>
+            <div className="text-sm font-semibold text-gray-900">Profile library</div>
             <div className="text-[11px] text-zinc-500">
               Persistent pool of your history. Reuse entries across resumes.
             </div>
@@ -361,7 +361,7 @@ export default function ProfilePanel() {
             ))}
             <button
               onClick={() => add(key, factory)}
-              className="flex items-center justify-center gap-1.5 text-sm text-cyan-400 border border-dashed border-white/10 rounded py-2.5 hover:border-cyan-400/50 hover:bg-cyan-400/5"
+              className="flex items-center justify-center gap-1.5 text-sm text-indigo-500 border border-dashed border-gray-200 rounded-lg py-2.5 hover:border-indigo-300 hover:bg-indigo-50"
             >
               <Plus size={14}/> Add entry
             </button>

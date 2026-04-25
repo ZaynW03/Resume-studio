@@ -83,7 +83,7 @@ export default function LibraryPickerModal({ moduleType, onClose, onPick }) {
     return createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
         <div className="card p-4 max-w-md">
-          <div className="text-sm text-zinc-200 mb-3">
+          <div className="text-sm text-gray-700 mb-3">
             Profile library doesn't track this module type.
           </div>
           <Button onClick={onClose}>Close</Button>
@@ -100,7 +100,7 @@ export default function LibraryPickerModal({ moduleType, onClose, onPick }) {
         <div className="flex items-center gap-3 px-5 h-14 border-b border-white/5 flex-shrink-0">
           <Library size={16} className="text-cyan-400"/>
           <div>
-            <div className="text-sm font-semibold text-zinc-100">Add from profile library</div>
+            <div className="text-sm font-semibold text-gray-900">Add from profile library</div>
             <div className="text-[11px] text-zinc-500">
               Select entries to copy into this resume. Edits won't affect the library copy.
             </div>
@@ -145,7 +145,7 @@ export default function LibraryPickerModal({ moduleType, onClose, onPick }) {
                       {on ? <CheckSquare size={16}/> : <Square size={16}/>}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-100 truncate">{s.title}</div>
+                      <div className="text-sm font-medium text-gray-900 truncate">{s.title}</div>
                       {s.subtitle && <div className="text-xs text-zinc-500 truncate">{s.subtitle}</div>}
                       {s.body && (
                         <div
