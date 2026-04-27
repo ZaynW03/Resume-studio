@@ -19,3 +19,6 @@ backend/data/
 .DS_Store
 .idea/
 .vscode/
+
+# Logs
+*.log

@@ -50,8 +50,8 @@ You will need to install a few system dependencies for PDF parsing and rendering
 
 #### 2. Start the Application (One Command)
 Run the startup script from the project root:
-```bash
-./start.sh
+```bat
+start.bat
 ```
 This script sets up the Python virtual environment, installs dependencies, and boots both servers:
 - **Backend (FastAPI)**: http://localhost:8000
@@ -128,8 +128,8 @@ OPENAI_MODEL=gpt-4o-mini
 
 #### 2. 一键启动
 在项目根目录下运行启动脚本：
-```bash
-./start.sh
+```bat
+start.bat
 ```
 该脚本会自动创建 Python 虚拟环境、安装依赖，并启动前后端服务：
 - **后端 (FastAPI)**: http://localhost:8000
