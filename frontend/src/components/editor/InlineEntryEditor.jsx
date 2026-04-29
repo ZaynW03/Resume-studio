@@ -3,7 +3,7 @@ import { useResumeStore } from '../../store/resumeStore'
 import { TextField, TextArea, Toggle, SelectField } from '../common/Fields'
 import RichTextEditor from './RichTextEditor'
 import { api } from '../../api'
-import { Sparkles, ChevronUp } from 'lucide-react'
+import { Sparkles, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { useT } from '../../i18n'
 
 function Row({ children }) {
@@ -169,7 +169,7 @@ const FIELDS = {
 }
 
 /** Inline editor: expanded panel that drops down below a clicked entry row. */
-export default function InlineEntryEditor({ moduleId, entryId, onClose }) {
+export default function InlineEntryEditor({ moduleId, entryId, onClose, onDelete }) {
   const t = useT()
   const mod   = useResumeStore((s) => s.resume.modules.find((m) => m.id === moduleId))
   const entry = mod?.entries.find((e) => e.id === entryId)
@@ -180,22 +180,46 @@ export default function InlineEntryEditor({ moduleId, entryId, onClose }) {
   const set = (patch) => updateEntry(moduleId, entryId, patch)
 
   return (
-    <div className="border-l-2 border-cyan-400/40 bg-ink-800/60 rounded-r-md overflow-hidden animate-[fadeIn_0.15s_ease-out]">
-      <div className="flex items-center justify-between px-4 py-2 bg-cyan-400/5 border-b border-white/5">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-mono">Editing entry</div>
-        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white"
-          title="Collapse">
-          <ChevronUp size={14}/>
-        </button>
-      </div>
-      <div className="p-4">
-        <Fields entry={entry} set={set} t={t}/>
-        <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-          <div className="w-32">
-            <Toggle label="Hidden" value={entry.hidden} onChange={(v) => set({ hidden: v })}/>
-          </div>
-          <button onClick={onClose} className="btn-secondary">Done</button>
+    <div className="bg-white overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+        <span className="text-[15px] font-bold text-gray-900">Edit Entry</span>
+        <div className="flex items-center gap-1">
+          <button
+            className={'p-1.5 rounded-lg transition-colors ' +
+              (entry.hidden ? 'text-gray-300 hover:text-gray-500' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100')}
+            onClick={() => set({ hidden: !entry.hidden })}
+            title={entry.hidden ? 'Show entry' : 'Hide entry'}
+          >
+            {entry.hidden ? <EyeOff size={15}/> : <Eye size={15}/>}
+          </button>
+          {onDelete && (
+            <button
+              className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+              onClick={onDelete}
+              title="Delete entry"
+            >
+              <Trash2 size={15}/>
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* Fields */}
+      <div className="p-5">
+        <Fields entry={entry} set={set} t={t}/>
+
+        {/* Done button */}
+        <button
+          onClick={onClose}
+          className="w-full mt-5 py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:shadow-md active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg, #6366f1, #ec4899)' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Done
+        </button>
       </div>
     </div>
   )

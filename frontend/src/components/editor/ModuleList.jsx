@@ -7,24 +7,75 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  GripVertical, Eye, EyeOff, Trash2, Plus, ChevronDown, ChevronRight,
-  Library, Scissors, User,
+  Eye, EyeOff, Trash2, Plus, ChevronDown, ChevronUp,
+  Scissors, User, Pencil,
 } from 'lucide-react'
 
-import { useResumeStore, MODULE_BLUEPRINTS, PERSONAL_FIELD_ORDER } from '../../store/resumeStore'
-import Icon, { ICON_CHOICES } from '../common/Icon'
+import { useResumeStore, MODULE_BLUEPRINTS } from '../../store/resumeStore'
+import Icon from '../common/Icon'
 import LibraryPickerModal from '../common/LibraryPickerModal'
 import InlineEntryEditor from './InlineEntryEditor'
 import { useT } from '../../i18n'
-import { Toggle } from '../common/Fields'
 
-function isBlankPersonalValue(value) {
-  return String(value ?? '').trim() === ''
+const uid = () => Math.random().toString(36).slice(2, 14)
+
+// ─── 6-dot drag handle icon ────────────────────────────────────────────────
+
+function GripDots({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 16" fill="currentColor">
+      <circle cx="2.5" cy="2"  r="1.4"/>
+      <circle cx="7.5" cy="2"  r="1.4"/>
+      <circle cx="2.5" cy="8"  r="1.4"/>
+      <circle cx="7.5" cy="8"  r="1.4"/>
+      <circle cx="2.5" cy="14" r="1.4"/>
+      <circle cx="7.5" cy="14" r="1.4"/>
+    </svg>
+  )
 }
+
+// ─── Personal details data ─────────────────────────────────────────────────
+
+const BUILTIN_PERSONAL_FIELDS = [
+  { key: 'full_name', label: 'Full name' },
+  { key: 'job_title', label: 'Job title' },
+  { key: 'email',     label: 'Email' },
+  { key: 'phone',     label: 'Phone' },
+  { key: 'location',  label: 'Location' },
+  { key: 'website',   label: 'Website' },
+  { key: 'linkedin',  label: 'LinkedIn' },
+  { key: 'github',    label: 'GitHub' },
+  { key: 'wechat',    label: 'WeChat' },
+  { key: 'qq',        label: 'QQ' },
+]
+
+const PRESET_EXTRAS = [
+  { icon: 'gender',      label: 'Gender' },
+  { icon: 'instagram',   label: 'Instagram' },
+  { icon: 'twitter',     label: 'Twitter/X' },
+  { icon: 'telegram',    label: 'Telegram' },
+  { icon: 'discord',     label: 'Discord' },
+  { icon: 'nationality', label: 'Nationality' },
+  { icon: 'birthday',    label: 'Birthday' },
+]
+
+const EXTRA_ICON_MAP = {
+  gender: '⚧', instagram: '📸', twitter: '@', telegram: '✈',
+  discord: '🎮', nationality: '🌏', birthday: '🎂', custom: '✦',
+}
+
+const CONTACT_ICONS = {
+  location: '📍', email: '✉', phone: '📞', date_of_birth: '🎂',
+  website: '🌐', linkedin: '🔗', github: '💻', wechat: '💬', qq: '🐧',
+}
+
+const toExtraToken = (id) => `extra:${id}`
+
+// ─── Entry helpers ─────────────────────────────────────────────────────────
 
 function entryLabel(type, e) {
   switch (type) {
-    case 'education':  return e.school || 'Untitled school'
+    case 'education':  return [e.school, e.degree].filter(Boolean).join(', ') || 'Untitled school'
     case 'experience': return e.position ? `${e.position}${e.company ? ' · ' + e.company : ''}` : (e.company || 'Untitled role')
     case 'projects':   return e.name || 'Untitled project'
     case 'skills':     return e.category || (e.items?.length ? e.items.join(', ').slice(0, 40) : 'Skill group')
@@ -34,70 +85,63 @@ function entryLabel(type, e) {
   }
 }
 
-// ---------- Entry row (with its own inline editor) ----------
+// ─── EntryRow ──────────────────────────────────────────────────────────────
 
-function EntryRow({ mod, entry }) {
+function EntryRow({ mod, entry, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: entry.id })
   const updateEntry = useResumeStore((s) => s.updateEntry)
-  const removeEntry = useResumeStore((s) => s.removeEntry)
-  const t = useT()
-  const [open, setOpen] = useState(false)  // local per-entry state
+  const t           = useT()
+  const [open, setOpen] = useState(false)
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
     zIndex: isDragging ? 10 : undefined,
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex flex-col">
+    <div ref={setNodeRef} style={style} className="flex flex-col border-t border-gray-100">
+      {/* Row */}
       <div
-        className={
-          'group flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg border transition-colors cursor-pointer ' +
-          (open
-            ? 'border-indigo-300 bg-indigo-50/60'
-            : 'border-gray-200 bg-white hover:border-indigo-200')
-        }
-        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-gray-50/80 transition-colors"
+        onClick={() => setOpen((o) => !o)}
       >
         <button
-          className="text-zinc-600 hover:text-cyan-400 cursor-grab active:cursor-grabbing"
+          className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
           {...attributes} {...listeners}
           onClick={(e) => e.stopPropagation()}
+          tabIndex={-1}
         >
-          <GripVertical size={14}/>
+          <GripDots size={12}/>
         </button>
-        <div className={'flex-1 text-sm truncate ' + (entry.hidden ? 'text-gray-300 line-through' : 'text-gray-900')}>
+
+        <span className={
+          'flex-1 text-sm truncate ' +
+          (entry.hidden ? 'text-gray-300 line-through' : 'text-gray-800 font-medium')
+        }>
           {entryLabel(mod.type, entry)}
-        </div>
+        </span>
+
         <button
-          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-200"
+          className={'p-1 rounded transition-colors flex-shrink-0 ' +
+            (entry.hidden ? 'text-gray-300 hover:text-gray-500' : 'text-gray-400 hover:text-gray-600')}
           onClick={(e) => { e.stopPropagation(); updateEntry(mod.id, entry.id, { hidden: !entry.hidden }) }}
           title={entry.hidden ? 'Show' : 'Hide'}
         >
-          {entry.hidden ? <EyeOff size={13}/> : <Eye size={13}/>}
+          {entry.hidden ? <EyeOff size={15}/> : <Eye size={15}/>}
         </button>
-        <button
-          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-red-400"
-          onClick={(e) => {
-            e.stopPropagation()
-            if (confirm(t('module.delete_confirm'))) removeEntry(mod.id, entry.id)
-          }}
-        >
-          <Trash2 size={13}/>
-        </button>
-        {open
-          ? <ChevronDown size={14} className="text-cyan-400"/>
-          : <ChevronRight size={14} className="text-zinc-600"/>}
       </div>
+
+      {/* Inline editor */}
       {open && (
-        <div className="mt-1.5 mb-1">
+        <div className="border-t border-gray-100">
           <InlineEntryEditor
             moduleId={mod.id}
             entryId={entry.id}
             onClose={() => setOpen(false)}
+            onDelete={() => { if (confirm(t('module.delete_confirm'))) { onDelete(); setOpen(false) } }}
           />
         </div>
       )}
@@ -105,28 +149,45 @@ function EntryRow({ mod, entry }) {
   )
 }
 
-// ---------- Page break module (minimal visual marker) ----------
+// ─── Page-break marker ────────────────────────────────────────────────────
 
 function PageBreakCard({ mod }) {
   const removeModule = useResumeStore((s) => s.removeModule)
-
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded border border-dashed border-amber-400/40 bg-amber-400/5">
-      <Scissors size={14} className="text-amber-400"/>
-      <div className="flex-1 text-xs text-amber-400 font-mono uppercase tracking-[0.15em]">
-        page break · content below jumps to next page
+    <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-dashed border-amber-300/60 bg-amber-50">
+      <Scissors size={13} className="text-amber-400"/>
+      <div className="flex-1 text-xs text-amber-500 font-mono uppercase tracking-[0.15em]">
+        page break
       </div>
       <button
-        className="p-1 rounded hover:bg-red-500/10 text-red-400"
-        onClick={() => { if (confirm('Remove this page break?')) removeModule(mod.id) }}
-        title="Remove">
+        className="p-1 rounded hover:bg-red-50 text-red-300 hover:text-red-400 transition-colors"
+        onClick={() => { if (confirm('Remove page break?')) removeModule(mod.id) }}
+      >
         <Trash2 size={13}/>
       </button>
     </div>
   )
 }
 
-function PersonalFieldRow({ field, value, visible, onToggle }) {
+// ─── PersonalFieldRow (original style) ────────────────────────────────────
+
+const BUILTIN_ENTRY_META = {
+  full_name: { label: 'Full name', icon: '👤' },
+  job_title: { label: 'Job title', icon: '💼' },
+  location:  { label: 'Location',  icon: '📍' },
+  email:     { label: 'Email',     icon: '✉'  },
+  phone:     { label: 'Phone',     icon: '📞' },
+  website:   { label: 'Website',   icon: '🌐' },
+  linkedin:  { label: 'LinkedIn',  icon: '🔗' },
+  github:    { label: 'GitHub',    icon: '💻' },
+  wechat:    { label: 'WeChat',    icon: '💬' },
+  qq:        { label: 'QQ',        icon: '🐧' },
+}
+
+function PersonalFieldRow({
+  field, label, icon, value, visible, isCustom,
+  onToggle, onValueChange, onLabelChange, onRemove, canRemove,
+}) {
   const t = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: field })
@@ -143,29 +204,51 @@ function PersonalFieldRow({ field, value, visible, onToggle }) {
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-semibold text-gray-800 mb-1">
-            {t(`field.${field}`, field)}
+            {isCustom ? (
+              <input
+                value={label || ''}
+                onChange={(e) => onLabelChange(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Label"
+                className="w-40 bg-transparent outline-none text-[13px] font-semibold text-gray-800 placeholder:text-zinc-400"
+              />
+            ) : (
+              t(`field.${field}`, label || field)
+            )}
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-sm flex items-center justify-center text-gray-500">
+              {icon || '•'}
+            </div>
             <div className={
               'flex-1 min-w-0 px-3 py-2.5 rounded-lg text-sm truncate ' +
-              (visible
-                ? 'bg-gray-100 text-gray-800'
-                : 'bg-gray-50 text-zinc-400 line-through')
+              (visible ? 'bg-gray-100 text-gray-800' : 'bg-gray-50 text-zinc-400 line-through')
             }>
-              {value || <span className="italic text-zinc-400 no-underline" style={{textDecoration:'none'}}>Empty — edit in Profile</span>}
+              <input
+                value={value || ''}
+                onChange={(e) => onValueChange(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Empty"
+                className="w-full bg-transparent outline-none text-sm text-gray-800 placeholder:text-zinc-400"
+              />
             </div>
-            {/* Visibility toggle */}
             <button
               className={'p-1.5 rounded-lg transition-colors flex-shrink-0 ' +
-                (visible
-                  ? 'text-indigo-500 hover:bg-indigo-50'
-                  : 'text-zinc-300 hover:bg-gray-100')}
+                (visible ? 'text-indigo-500 hover:bg-indigo-50' : 'text-zinc-300 hover:bg-gray-100')}
               onClick={() => onToggle(!visible)}
               title={visible ? 'Hide from resume' : 'Show on resume'}
             >
               {visible ? <Eye size={16}/> : <EyeOff size={16}/>}
             </button>
-            {/* Drag handle */}
+            {canRemove && (
+              <button
+                className="p-1.5 rounded-lg transition-colors flex-shrink-0 text-zinc-300 hover:text-red-400 hover:bg-red-50"
+                onClick={() => onRemove()}
+                title="Delete field"
+              >
+                <Trash2 size={14}/>
+              </button>
+            )}
             <button
               className="text-zinc-400 hover:text-zinc-600 cursor-grab active:cursor-grabbing flex-shrink-0 p-1"
               {...attributes} {...listeners}
@@ -181,58 +264,131 @@ function PersonalFieldRow({ field, value, visible, onToggle }) {
   )
 }
 
-const CONTACT_ICONS = {
-  location:  '📍', email: '✉', phone: '📞', date_of_birth: '🎂',
-  website: '🌐', linkedin: '🔗', github: '💻', wechat: '💬', qq: '🐧',
-}
+// ─── PersonalDetailsCard (original style) ─────────────────────────────────
 
 function PersonalDetailsCard({ mod }) {
-  const updateModule = useResumeStore((s) => s.updateModule)
   const updatePersonal = useResumeStore((s) => s.updatePersonal)
   const personal = useResumeStore((s) => s.resume.personal)
   const [editing, setEditing] = useState(false)
 
-  const fieldOrder = personal.visible_fields?.length ? personal.visible_fields : PERSONAL_FIELD_ORDER
-  const hidden = new Set(personal.hidden_fields || [])
-  const visible = new Set(fieldOrder.filter((field) => !hidden.has(field) && !isBlankPersonalValue(personal[field])))
-  const fieldSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const builtinEntries = BUILTIN_PERSONAL_FIELDS.map((f) => ({
+    token: f.key,
+    id: f.key,
+    field: f.key,
+    label: BUILTIN_ENTRY_META[f.key]?.label || f.label,
+    icon: BUILTIN_ENTRY_META[f.key]?.icon || '•',
+    value: personal[f.key] || '',
+    isCustom: false,
+    isBuiltin: true,
+  }))
+  const extraEntries = (personal.extra_fields || []).map((ef) => ({
+    token: toExtraToken(ef.id),
+    id: ef.id,
+    field: ef.id,
+    label: ef.label || 'New Entry',
+    icon: EXTRA_ICON_MAP[ef.icon] || ef.icon || '✦',
+    value: ef.value || '',
+    isCustom: true,
+    isBuiltin: false,
+  }))
+  const allEntries = [...builtinEntries, ...extraEntries]
+  const byToken = new Map(allEntries.map((e) => [e.token, e]))
 
-  const toggleVisible = (field, on) => {
-    if (on && isBlankPersonalValue(personal[field])) return
+  const baseOrder = Array.isArray(personal.visible_fields) && personal.visible_fields.length
+    ? personal.visible_fields
+    : [...builtinEntries.map((e) => e.token), ...extraEntries.map((e) => e.token)]
+  const dedupedBase = [...new Set(baseOrder)]
+  const orderTokens = [
+    ...dedupedBase.filter((t) => byToken.has(t)),
+    ...allEntries.map((e) => e.token).filter((t) => !dedupedBase.includes(t)),
+  ]
+  const hidden  = new Set(personal.hidden_fields || [])
+  const visible = new Set(orderTokens.filter((token) => !hidden.has(token)))
+
+  const orderedEntries = orderTokens.map((token) => byToken.get(token)).filter(Boolean)
+  const visibleEntries = orderedEntries.filter((e) => !hidden.has(e.token))
+  const hiddenBuiltin  = builtinEntries.filter((e) => hidden.has(e.token))
+  const hiddenExtra    = extraEntries.filter((e) => hidden.has(e.token))
+  const fieldSensors   = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  const toggleVisible = (token, on) => {
     const nextHidden = new Set(hidden)
-    if (on) nextHidden.delete(field)
-    else nextHidden.add(field)
+    if (on) nextHidden.delete(token)
+    else nextHidden.add(token)
     updatePersonal({ hidden_fields: [...nextHidden] })
   }
 
   const onFieldDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return
-    const next = arrayMove(fieldOrder, fieldOrder.indexOf(active.id), fieldOrder.indexOf(over.id))
-    updatePersonal({ visible_fields: next })
+    updatePersonal({ visible_fields: arrayMove(orderTokens, orderTokens.indexOf(active.id), orderTokens.indexOf(over.id)) })
+  }
+
+  const patchExtra = (id, patch) => {
+    updatePersonal({ extra_fields: (personal.extra_fields || []).map((ef) => ef.id === id ? { ...ef, ...patch } : ef) })
+  }
+
+  const updateEntryValue = (entry, value) => {
+    if (entry.isBuiltin) {
+      updatePersonal({ [entry.field]: value })
+      return
+    }
+    patchExtra(entry.id, { value })
+    const token = entry.token
+    if (!orderTokens.includes(token) || hidden.has(token)) {
+      updatePersonal({
+        visible_fields: orderTokens.includes(token) ? orderTokens : [...orderTokens, token],
+        hidden_fields: (personal.hidden_fields || []).filter((t) => t !== token),
+      })
+    }
+  }
+
+  const updateEntryLabel = (entry, label) => {
+    if (!entry.isCustom) return
+    patchExtra(entry.id, { label })
+  }
+
+  const removeEntry = (entry) => {
+    if (entry.isBuiltin) {
+      updatePersonal({
+        [entry.field]: '',
+        hidden_fields: [...new Set([...(personal.hidden_fields || []), entry.token])],
+      })
+      return
+    }
+    updatePersonal({
+      extra_fields: (personal.extra_fields || []).filter((ef) => ef.id !== entry.id),
+      visible_fields: orderTokens.filter((t) => t !== entry.token),
+      hidden_fields: (personal.hidden_fields || []).filter((t) => t !== entry.token),
+    })
+  }
+
+  const addExtra = (preset = null) => {
+    const ef = preset
+      ? { id: uid(), icon: preset.icon, label: preset.label, value: '' }
+      : { id: uid(), icon: 'custom', label: '', value: '' }
+    updatePersonal({
+      extra_fields: [...(personal.extra_fields || []), ef],
+      visible_fields: [...orderTokens, toExtraToken(ef.id)],
+      hidden_fields: (personal.hidden_fields || []).filter((t) => t !== toExtraToken(ef.id)),
+    })
   }
 
   const P = personal
-  const contactFields = fieldOrder.filter(
-    (f) => !['full_name','job_title','summary_line'].includes(f) && !hidden.has(f) && P[f]
+  const contactEntries = orderedEntries.filter(
+    (e) => !hidden.has(e.token) && String(e.value || '').trim() &&
+           !['full_name', 'job_title', 'summary_line'].includes(e.field)
   )
 
   return (
     <div className="card overflow-visible">
       {/* ── Preview card ── */}
-      <div
-        className="relative group cursor-pointer"
-        onClick={() => setEditing(!editing)}
-      >
+      <div className="relative group cursor-pointer" onClick={() => setEditing(!editing)}>
         <div className="p-4">
-          {/* Name + title */}
           <h2 className="text-xl font-bold text-gray-900 leading-tight">
             {P.full_name || <span className="text-zinc-300 font-normal">Your name</span>}
           </h2>
-          {P.job_title && (
-            <div className="text-sm text-zinc-500 mt-0.5">{P.job_title}</div>
-          )}
+          {P.job_title && <div className="text-sm text-zinc-500 mt-0.5">{P.job_title}</div>}
 
-          {/* Photo — below name, bigger */}
           <div className="mt-3 flex items-start gap-4">
             {P.photo_url ? (
               <img src={P.photo_url} className="w-24 h-28 rounded-lg object-cover border border-gray-200/60 flex-shrink-0"/>
@@ -241,14 +397,14 @@ function PersonalDetailsCard({ mod }) {
                 <User size={32} className="text-gray-300"/>
               </div>
             )}
-
-            {/* Contact fields next to photo */}
-            {contactFields.length > 0 && (
+            {contactEntries.length > 0 && (
               <div className="flex flex-col gap-1.5 pt-1">
-                {contactFields.map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                    <span className="text-[11px] w-4 text-center flex-shrink-0">{CONTACT_ICONS[f] || '•'}</span>
-                    <span className="truncate">{P[f]}</span>
+                {contactEntries.map((e) => (
+                  <div key={e.token} className="flex items-center gap-2 text-xs text-gray-600">
+                    <span className="text-[11px] w-4 text-center flex-shrink-0">
+                      {e.isBuiltin ? (CONTACT_ICONS[e.field] || e.icon || '•') : (e.icon || '✦')}
+                    </span>
+                    <span className="truncate">{e.value}</span>
                   </div>
                 ))}
               </div>
@@ -256,53 +412,43 @@ function PersonalDetailsCard({ mod }) {
           </div>
         </div>
 
-        {/* Edit button overlay */}
         <button
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
           onClick={(e) => { e.stopPropagation(); setEditing(!editing) }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
       </div>
 
-      {/* ── Edit panel — Resume Studio layout ── */}
+      {/* ── Edit panel ── */}
       {editing && (
         <div className="border-t border-gray-100">
           <div className="p-5 pb-4">
-            {/* Header */}
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Personal Details</h3>
 
             {/* Name + Title + Photo row */}
             <div className="flex gap-4 mb-4">
               <div className="flex-1 flex flex-col gap-3">
-                {/* Full name field */}
-                {fieldOrder.includes('full_name') && (() => {
+                {byToken.has('full_name') && (() => {
                   const fVisible = visible.has('full_name')
                   return (
                     <div>
                       <div className="text-[13px] font-semibold text-gray-800 mb-1">Full name</div>
-                      <div className={
-                        'px-3 py-2.5 rounded-lg text-sm ' +
-                        (fVisible ? 'bg-gray-100 text-gray-800' : 'bg-gray-50 text-zinc-400 line-through')
-                      }>
+                      <div className={'px-3 py-2.5 rounded-lg text-sm ' + (fVisible ? 'bg-gray-100 text-gray-800' : 'bg-gray-50 text-zinc-400 line-through')}>
                         {P.full_name || <span className="italic text-zinc-400" style={{textDecoration:'none'}}>Empty</span>}
                       </div>
                     </div>
                   )
                 })()}
-
-                {/* Job title field */}
-                {fieldOrder.includes('job_title') && (() => {
+                {byToken.has('job_title') && (() => {
                   const fVisible = visible.has('job_title')
                   return (
                     <div>
                       <div className="text-[13px] font-semibold text-gray-800 mb-1">Professional title</div>
-                      <div className={
-                        'px-3 py-2.5 rounded-lg text-sm ' +
-                        (fVisible ? 'bg-gray-100 text-gray-800' : 'bg-gray-50 text-zinc-400 line-through')
-                      }>
+                      <div className={'px-3 py-2.5 rounded-lg text-sm ' + (fVisible ? 'bg-gray-100 text-gray-800' : 'bg-gray-50 text-zinc-400 line-through')}>
                         {P.job_title || <span className="italic text-zinc-400" style={{textDecoration:'none'}}>Empty</span>}
                       </div>
                     </div>
@@ -310,7 +456,6 @@ function PersonalDetailsCard({ mod }) {
                 })()}
               </div>
 
-              {/* Photo */}
               <div className="flex-shrink-0">
                 <div className="text-[13px] font-semibold text-gray-800 mb-1">Photo</div>
                 {P.photo_url ? (
@@ -323,30 +468,54 @@ function PersonalDetailsCard({ mod }) {
               </div>
             </div>
 
-            {/* Remaining fields — single column, sortable */}
+            {/* Sortable fields */}
             <DndContext sensors={fieldSensors} collisionDetection={closestCenter} onDragEnd={onFieldDragEnd}>
-              <SortableContext
-                items={fieldOrder.filter((f) => !['full_name','job_title'].includes(f))}
-                strategy={verticalListSortingStrategy}
-              >
+              <SortableContext items={visibleEntries.map((e) => e.token)} strategy={verticalListSortingStrategy}>
                 <div className="flex flex-col gap-3">
-                  {fieldOrder
-                    .filter((f) => !['full_name','job_title'].includes(f))
-                    .map((field) => (
-                      <PersonalFieldRow
-                        key={field}
-                        field={field}
-                        value={personal[field]}
-                        visible={visible.has(field)}
-                        onToggle={(on) => toggleVisible(field, on)}
-                      />
-                    ))
-                  }
+                  {visibleEntries.map((entry) => (
+                    <PersonalFieldRow
+                      key={entry.token}
+                      field={entry.token}
+                      label={entry.label}
+                      icon={entry.icon}
+                      value={entry.value}
+                      visible={visible.has(entry.token)}
+                      isCustom={entry.isCustom}
+                      onToggle={(on) => toggleVisible(entry.token, on)}
+                      onValueChange={(v) => updateEntryValue(entry, v)}
+                      onLabelChange={(label) => updateEntryLabel(entry, label)}
+                      onRemove={() => removeEntry(entry)}
+                      canRemove={true}
+                    />
+                  ))}
                 </div>
               </SortableContext>
             </DndContext>
 
-            {/* Done button — gradient style */}
+            <div className="mt-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400 mb-2">Add entries</div>
+              <div className="flex flex-wrap gap-1.5">
+                {hiddenBuiltin.map((entry) => (
+                  <button key={entry.token} onClick={() => toggleVisible(entry.token, true)} className="chip">
+                    <Plus size={11}/> {entry.label}
+                  </button>
+                ))}
+                {hiddenExtra.map((entry) => (
+                  <button key={entry.token} onClick={() => toggleVisible(entry.token, true)} className="chip">
+                    <Plus size={11}/> {entry.label || 'New Entry'}
+                  </button>
+                ))}
+                {PRESET_EXTRAS.map((preset) => (
+                  <button key={preset.label} onClick={() => addExtra(preset)} className="chip">
+                    <Plus size={11}/> {preset.label}
+                  </button>
+                ))}
+                <button onClick={() => addExtra()} className="chip">
+                  <Plus size={11}/> New Entry
+                </button>
+              </div>
+            </div>
+
             <button
               onClick={() => setEditing(false)}
               className="w-full mt-5 py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg active:scale-[0.98]"
@@ -364,150 +533,125 @@ function PersonalDetailsCard({ mod }) {
   )
 }
 
-// ---------- Regular module card ----------
+// ─── ModuleCard ────────────────────────────────────────────────────────────
 
-function ModuleCard({ mod, defaultOpen = true }) {
-  const t = useT()
-  const updateModule    = useResumeStore((s) => s.updateModule)
-  const removeModule    = useResumeStore((s) => s.removeModule)
-  const addEntry        = useResumeStore((s) => s.addEntry)
-  const reorderEntries  = useResumeStore((s) => s.reorderEntries)
+function ModuleCard({ mod, defaultOpen = false }) {
+  const t              = useT()
+  const updateModule   = useResumeStore((s) => s.updateModule)
+  const removeModule   = useResumeStore((s) => s.removeModule)
+  const addEntry       = useResumeStore((s) => s.addEntry)
+  const removeEntry    = useResumeStore((s) => s.removeEntry)
+  const reorderEntries = useResumeStore((s) => s.reorderEntries)
 
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [isOpen, setIsOpen]         = useState(defaultOpen)
   const [editingName, setEditingName] = useState(false)
-  const [pickingIcon, setPickingIcon] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
 
   const entrySensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   const onEntryDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return
-    const ids = mod.entries.map((e) => e.id)
-    const oldIdx = ids.indexOf(active.id)
-    const newIdx = ids.indexOf(over.id)
-    reorderEntries(mod.id, arrayMove(ids, oldIdx, newIdx))
+    const ids    = mod.entries.map((e) => e.id)
+    reorderEntries(mod.id, arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id)))
   }
 
   const onLibraryPick = (picked) => {
-    const withIds = picked.map((e) => ({
-      ...e, id: Math.random().toString(36).slice(2, 14), hidden: false,
-    }))
+    const withIds = picked.map((e) => ({ ...e, id: uid(), hidden: false }))
     updateModule(mod.id, { entries: [...mod.entries, ...withIds] })
     setShowLibrary(false)
   }
 
-  const hasLibraryPool = ['experience','projects','education','skills','awards','summary'].includes(mod.type)
-
   return (
-    <div className="card overflow-visible">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-visible">
       {/* Header */}
       <div
-        className={
-          'flex items-center gap-2 px-3 py-3 border-b transition-colors cursor-pointer ' +
-          (isOpen ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 hover:bg-gray-50')
-        }
-        onClick={() => setIsOpen(!isOpen)}
+        className={'flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none ' +
+          (isOpen ? 'rounded-t-2xl' : 'rounded-2xl')}
+        onClick={() => !editingName && setIsOpen((o) => !o)}
       >
-        <div className="relative">
-          <button
-            className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-500"
-            onClick={(e) => { e.stopPropagation(); setPickingIcon(!pickingIcon) }}
-          >
-            <Icon name={mod.icon} size={17}/>
-          </button>
-          {pickingIcon && (
-            <>
-              <div className="fixed inset-0 z-20"
-                onClick={(e) => { e.stopPropagation(); setPickingIcon(false) }}/>
-              <div className="absolute z-30 top-full mt-1 left-0 bg-white border border-gray-200 rounded-xl shadow-lg p-2 grid grid-cols-6 gap-0.5 w-56">
-                {ICON_CHOICES.map((n) => (
-                  <button key={n}
-                    className={
-                      'p-1.5 rounded-lg hover:bg-indigo-50 ' +
-                      (n === mod.icon ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-indigo-500')
-                    }
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      updateModule(mod.id, { icon: n })
-                      setPickingIcon(false)
-                    }}
-                  >
-                    <Icon name={n} size={15}/>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <Icon name={mod.icon} size={17} className="text-[#1e1b3a] flex-shrink-0"/>
 
         {editingName ? (
-          <input autoFocus
-            className="flex-1 bg-white border border-indigo-300 rounded-lg px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-indigo-500"
+          <input
+            autoFocus
+            className="flex-1 bg-transparent text-[15px] font-bold text-gray-900 outline-none border-b border-indigo-300 focus:border-indigo-500"
             value={mod.name}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => updateModule(mod.id, { name: e.target.value })}
             onBlur={() => setEditingName(false)}
-            onKeyDown={(e) => e.key === 'Enter' && setEditingName(false)}/>
+            onKeyDown={(e) => e.key === 'Enter' && setEditingName(false)}
+          />
         ) : (
+          <span className="flex-1 text-[15px] font-bold text-[#1e1b3a]">{mod.name}</span>
+        )}
+
+        {isOpen && !editingName && (
           <button
-            className="flex-1 text-left text-[15px] font-semibold text-gray-900 truncate"
-            onDoubleClick={(e) => { e.stopPropagation(); setEditingName(true) }}
+            className="flex items-center gap-1.5 text-[12px] text-gray-500 bg-white border border-gray-200 rounded-full px-2.5 py-1 hover:bg-gray-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors flex-shrink-0"
+            onClick={(e) => { e.stopPropagation(); setEditingName(true) }}
           >
-            {mod.name}
-            <span className="text-gray-400 font-normal ml-2 text-xs tabular-nums">
-              {mod.entries.length}
-            </span>
+            <Pencil size={11}/> Edit Heading
           </button>
         )}
 
-        <button
-          className="p-1.5 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-200"
-          title={mod.hidden ? 'Show' : 'Hide'}
-          onClick={(e) => { e.stopPropagation(); updateModule(mod.id, { hidden: !mod.hidden }) }}
-        >
-          {mod.hidden ? <EyeOff size={14}/> : <Eye size={14}/>}
-        </button>
-        <button
-          className="p-1.5 rounded hover:bg-red-500/10 text-red-400"
-          title="Delete"
-          onClick={(e) => {
-            e.stopPropagation()
-            if (confirm(`Delete "${mod.name}"?`)) removeModule(mod.id)
-          }}
-        >
-          <Trash2 size={14}/>
-        </button>
         {isOpen
-          ? <ChevronDown size={16} className="text-cyan-400"/>
-          : <ChevronRight size={16} className="text-zinc-600"/>}
+          ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0"/>
+          : <ChevronDown size={16} className="text-gray-400 flex-shrink-0"/>
+        }
       </div>
 
-      {/* Expanded entries */}
+      {/* Expanded body */}
       {isOpen && (
-        <div className="p-3 flex flex-col gap-2">
-          {mod.entries.length === 0 && (
-            <div className="text-xs text-zinc-500 text-center py-3">No entries yet.</div>
-          )}
+        <div className="border-t border-gray-200">
+          {/* Entry list */}
           <DndContext sensors={entrySensors} collisionDetection={closestCenter} onDragEnd={onEntryDragEnd}>
             <SortableContext items={mod.entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-              {mod.entries.map((e) => <EntryRow key={e.id} mod={mod} entry={e}/>)}
+              {mod.entries.map((e) => (
+                <EntryRow
+                  key={e.id}
+                  mod={mod}
+                  entry={e}
+                  onDelete={() => removeEntry(mod.id, e.id)}
+                />
+              ))}
             </SortableContext>
           </DndContext>
-          <div className="flex gap-2 pt-1">
+
+          {mod.entries.length === 0 && (
+            <div className="px-4 py-6 text-center text-xs text-gray-400">
+              No entries yet — click + Add Entry below.
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex items-center px-4 py-2 border-t border-gray-100">
+            <button
+              className={'p-1.5 rounded-lg transition-colors flex-shrink-0 ' +
+                (mod.hidden ? 'text-gray-300 hover:text-gray-500' : 'text-gray-400 hover:text-gray-600') +
+                ' hover:bg-gray-50'}
+              onClick={() => updateModule(mod.id, { hidden: !mod.hidden })}
+              title={mod.hidden ? 'Show section' : 'Hide section'}
+            >
+              {mod.hidden ? <EyeOff size={15}/> : <Eye size={15}/>}
+            </button>
+
             <button
               onClick={() => addEntry(mod.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-sm text-indigo-500 border border-dashed border-gray-200 rounded-lg py-2.5 hover:border-indigo-300 hover:bg-indigo-50"
+              className="flex-1 flex items-center justify-center gap-2 text-[14px] text-gray-600 py-2 hover:text-indigo-600 font-medium transition-colors"
             >
-              <Plus size={14}/> {t('module.new_entry')}
+              <Plus size={15}/> {t('module.new_entry')}
             </button>
-            {hasLibraryPool && (
-              <button
-                onClick={() => setShowLibrary(true)}
-                className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-500 border border-dashed border-gray-200 rounded-lg py-2.5 hover:border-gray-300 hover:bg-gray-50"
-              >
-                <Library size={14}/> {t('module.from_library')}
-              </button>
-            )}
+
+            <button
+              className="p-1.5 text-gray-300 hover:text-red-400 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (confirm(`Delete "${mod.name}"?`)) removeModule(mod.id)
+              }}
+              title="Delete section"
+            >
+              <Trash2 size={15}/>
+            </button>
           </div>
         </div>
       )}
@@ -523,15 +667,15 @@ function ModuleCard({ mod, defaultOpen = true }) {
   )
 }
 
-// ---------- Top-level module list ----------
+// ─── ModuleList (top-level) ────────────────────────────────────────────────
 
 export default function ModuleList() {
-  const t = useT()
+  const t       = useT()
   const modules = useResumeStore((s) => s.resume.modules)
   const addModule = useResumeStore((s) => s.addModule)
 
   const typesInUse = new Set(modules.map((m) => m.type))
-  const addable = Object.keys(MODULE_BLUEPRINTS).filter(
+  const addable    = Object.keys(MODULE_BLUEPRINTS).filter(
     (type) => type !== 'page_break' && (type === 'custom' || !typesInUse.has(type))
   )
 
@@ -545,23 +689,28 @@ export default function ModuleList() {
           : <ModuleCard key={m.id} mod={m}/>
       )}
 
-      <div className="mt-2 pt-3 border-t border-gray-100">
-        <div className="panel-title mb-2">{t('module.add_section')}</div>
+      <div className="mt-2 pt-3 border-t border-gray-200">
+        <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.15em] mb-2">
+          {t('module.add_section')}
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {addable.map((type) => (
             <button
               key={type}
               onClick={() => addModule(type)}
-              className={
-                'chip ' +
-                (type === 'page_break' ? 'border-amber-400/40 text-amber-400' : '')
-              }
+              className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-full px-3 py-1.5 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
             >
               <Plus size={11}/>
-              <Icon name={MODULE_BLUEPRINTS[type].icon} size={12}/>
+              <Icon name={MODULE_BLUEPRINTS[type].icon} size={11}/>
               {MODULE_BLUEPRINTS[type].name}
             </button>
           ))}
+          <button
+            onClick={() => addModule('page_break')}
+            className="flex items-center gap-1.5 text-xs border border-amber-200 rounded-full px-3 py-1.5 text-amber-500 hover:bg-amber-50 transition-colors"
+          >
+            <Scissors size={11}/> Page Break
+          </button>
         </div>
       </div>
     </div>

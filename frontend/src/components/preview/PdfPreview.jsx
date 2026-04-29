@@ -313,6 +313,11 @@ export default function PdfPreview() {
     return r.text()
   }, [resume])
 
+  // Keep a ref so the debounced effect always calls the latest fetch closure
+  // without having fetchRenderedHtml itself as a dep (which would bypass debounce).
+  const fetchRef = useRef(fetchRenderedHtml)
+  fetchRef.current = fetchRenderedHtml
+
   const openPrintWindow = useCallback(async (html) => {
     const w = window.open('', '_blank')
     if (!w) throw new Error('Popup blocked — allow popups for localhost.')
@@ -394,7 +399,7 @@ export default function PdfPreview() {
 
     ;(async () => {
       try {
-        const txt = await fetchRenderedHtml()
+        const txt = await fetchRef.current()
         const paged = await paginateRenderedHtml(txt, paper)
         if (cancelled) return
         setPages(paged)
@@ -407,7 +412,7 @@ export default function PdfPreview() {
     })()
 
     return () => { cancelled = true }
-  }, [debounced, fetchRenderedHtml, paper])
+  }, [debounced, paper])
 
   const setOverflowFor = useCallback((i, v) => {
     setOverflow((prev) => prev[i] === v ? prev : { ...prev, [i]: v })

@@ -53,7 +53,8 @@
       "Bash(.venv/Scripts/python -m uvicorn app.main:app --reload --port 8000)",
       "Bash(awk '{print $5}')",
       "Bash(xargs -I{} taskkill /F /PID {})",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(npx tsc *)"
     ]
   }
 }

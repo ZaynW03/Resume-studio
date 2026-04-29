@@ -78,7 +78,6 @@ export const PERSONAL_FIELD_ORDER = [
   'location',
   'email',
   'phone',
-  'website',
   'linkedin',
   'github',
   'wechat',
@@ -179,7 +178,11 @@ function normalizeResume(resume) {
     PERSONAL_FIELD_ORDER.forEach((field) => {
       if (!ordered.includes(field)) ordered.push(field)
     })
-    next.personal.visible_fields = ordered
+    // Migration: website is no longer a default visible field.
+    // Keep it visible only when it actually has a value.
+    next.personal.visible_fields = ordered.filter(
+      (field) => field !== 'website' || String(next.personal.website ?? '').trim() !== ''
+    )
   }
   next.personal.hidden_fields = Array.isArray(next.personal.hidden_fields) ? next.personal.hidden_fields : []
   next.customize = { ...next.customize, page_breaks: [...breakAfter] }

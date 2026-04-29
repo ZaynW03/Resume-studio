@@ -244,7 +244,7 @@
 {# ═══  HEADER  ═════════════════════════════════════════════════════════════ #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {% set P = resume.personal %}
-{% set default_order = ['full_name','job_title','summary_line','location','email','phone','date_of_birth','website','linkedin','github','wechat','qq'] %}
+{% set default_order = ['full_name','job_title','summary_line','location','email','phone','date_of_birth','linkedin','github','wechat','qq'] %}
 {% set order = P.visible_fields if P.visible_fields else default_order %}
 {% set hidden = P.hidden_fields if P.hidden_fields else [] %}
 {% set ns = namespace(personal_visible=false) %}
@@ -301,17 +301,30 @@
               <span>{{ fval }}</span>
             {% endif %}
           </div>
-        {% endif %}
-      {% endfor %}
-      {# Extra custom fields #}
-      {% for ef in (P.extra_fields | default([])) %}
-        {% if ef.get('value') %}
-          {% if sep_ns.fi > 0 and _inline and _sep in ['bullet','bar'] %}<span class="contact-sep">{{ '•' if _sep == 'bullet' else '|' }}</span>{% endif %}
-          {% set sep_ns.fi = sep_ns.fi + 1 %}
-          <div class="contact-item">
-            <span class="icon" style="font-size:11px;line-height:1;">{{ ef.get('icon', '') }}</span>
-            <span>{{ ef.value }}</span>
-          </div>
+        {% elif field.startswith('extra:') %}
+          {% set ex = namespace(item=None) %}
+          {% set ef_id = field[6:] %}
+          {% for ef in (P.extra_fields | default([])) %}
+            {% if ef.get('id') == ef_id %}{% set ex.item = ef %}{% endif %}
+          {% endfor %}
+          {% if field not in hidden and ex.item and ex.item.get('value') %}
+            {% if sep_ns.fi > 0 and _inline and _sep in ['bullet','bar'] %}<span class="contact-sep">{{ '•' if _sep == 'bullet' else '|' }}</span>{% endif %}
+            {% set sep_ns.fi = sep_ns.fi + 1 %}
+            {% set ef_icon = ex.item.get('icon', '') %}
+            {% if ef_icon == 'gender' %}{% set ef_icon = '⚧' %}
+            {% elif ef_icon == 'instagram' %}{% set ef_icon = '📸' %}
+            {% elif ef_icon == 'twitter' %}{% set ef_icon = '@' %}
+            {% elif ef_icon == 'telegram' %}{% set ef_icon = '✈' %}
+            {% elif ef_icon == 'discord' %}{% set ef_icon = '🎮' %}
+            {% elif ef_icon == 'nationality' %}{% set ef_icon = '🌏' %}
+            {% elif ef_icon == 'birthday' %}{% set ef_icon = '🎂' %}
+            {% elif ef_icon == 'custom' %}{% set ef_icon = '✦' %}
+            {% endif %}
+            <div class="contact-item">
+              <span class="icon" style="font-size:11px;line-height:1;">{{ ef_icon }}</span>
+              <span>{{ ex.item.value }}</span>
+            </div>
+          {% endif %}
         {% endif %}
       {% endfor %}
     </div>
