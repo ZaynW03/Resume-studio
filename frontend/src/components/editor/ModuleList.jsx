@@ -267,7 +267,7 @@ function PersonalDetailsCard({ mod }) {
         </button>
       </div>
 
-      {/* ── Edit panel — FlowCV-style layout ── */}
+      {/* ── Edit panel — Resume Studio layout ── */}
       {editing && (
         <div className="border-t border-gray-100">
           <div className="p-5 pb-4">

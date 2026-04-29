@@ -92,6 +92,7 @@ def resolved_spacing(customize) -> dict:
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html", "xml"]),
+    auto_reload=True,
 )
 _env.filters["date_fmt"] = format_date
 _env.globals["format_range"] = format_range

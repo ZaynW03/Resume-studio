@@ -21,18 +21,37 @@ def _now() -> str:
 # ---------------- Resumes ----------------
 
 def list_resumes() -> list[dict[str, Any]]:
-    out = []
+    all_items: list[dict[str, Any]] = []
     for p in sorted(RESUMES_DIR.glob("*.json")):
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
-            out.append({
+            all_items.append({
                 "id": data.get("id"),
-                "title": data.get("title"),
+                "title": data.get("title") or "Untitled Resume",
                 "updated_at": data.get("updated_at", ""),
+                "_path": p,
             })
         except Exception:
             continue
-    return out
+
+    # Deduplicate: for resumes with the same title keep the most recently updated,
+    # then physically delete the older duplicates so they don't reappear.
+    by_title: dict[str, dict[str, Any]] = {}
+    for item in all_items:
+        title = item["title"]
+        if title not in by_title or item["updated_at"] > by_title[title]["updated_at"]:
+            by_title[title] = item
+
+    kept_ids = {v["id"] for v in by_title.values()}
+    for item in all_items:
+        if item["id"] not in kept_ids:
+            try:
+                item["_path"].unlink(missing_ok=True)
+            except Exception:
+                pass
+
+    result = sorted(by_title.values(), key=lambda x: x["updated_at"], reverse=True)
+    return [{"id": r["id"], "title": r["title"], "updated_at": r["updated_at"]} for r in result]
 
 
 def _migrate_resume_data(data: dict) -> dict:

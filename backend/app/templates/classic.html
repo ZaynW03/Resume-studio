@@ -1,17 +1,10 @@
 {# Classic theme — extends the shared base template.
-   Uses accent_color for heading borders/pills, traditional serif-like feel. #}
+   Uses accent_color for heading borders/pills, traditional serif-like feel.
+   Only CSS color/style overrides here — all layout logic lives in _base.html. #}
 {% extends "_base.html" %}
 
-{% block css_header %}
-  {{ super() }}
-  {# Classic uses accent-colored job title, slightly smaller #}
-  .header-info .name-role-wrapper .job-title {
-    font-weight: 600; color: {{ c.accent_color }};
-    font-size: {{ c.font_size * 1.15 }}pt;
-  }
-{% endblock %}
-
-{% block css_section_heading %}
+{% block css_extra %}
+  {# ── Classic section headings (accent-colored borders) ── #}
   h2.section {
     font-family: "{{ c.subtitle_font }}";
     font-size: {{ c.subtitle_size }}pt;

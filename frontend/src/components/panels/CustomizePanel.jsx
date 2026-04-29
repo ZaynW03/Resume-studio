@@ -3,7 +3,7 @@ import { useResumeStore } from '../../store/resumeStore'
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Check, Lock, GripVertical, EyeOff,
-  LayoutTemplate, Rows3,
+  LayoutTemplate, Rows3, Type, User, GraduationCap, Briefcase,
 } from 'lucide-react'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -16,7 +16,7 @@ import { CSS } from '@dnd-kit/utilities'
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TEMPLATES = [
-  { id: 'flowcv-style', name: 'FlowCV',  desc: 'Two-column · icon headings' },
+  { id: 'flowcv-style', name: 'Studio',  desc: 'Two-column · icon headings' },
   { id: 'classic',      name: 'Classic', desc: 'Single column · traditional' },
   { id: 'minimal',      name: 'Minimal', desc: 'Clean · no color · compact'  },
 ]
@@ -75,6 +75,12 @@ const CONTACT_SEPS_INLINE = [
 const CONTACT_SEPS_BLOCK = [
   { id: 'icon', label: '☺ Icon' },
   { id: 'none', label: '✕ None' },
+]
+
+const FONT_OPTIONS = [
+  'Inter', 'Roboto', 'Outfit', 'Lato', 'Poppins',
+  'Open Sans', 'Montserrat', 'Merriweather', 'Playfair Display',
+  'Source Sans Pro', 'Noto Sans SC', 'LXGW WenKai',
 ]
 
 // ─── Visual SVGs ─────────────────────────────────────────────────────────────
@@ -415,6 +421,258 @@ function HeaderLayoutSection({ c, update }) {
   )
 }
 
+// ─── Name & Role Title ────────────────────────────────────────────────────────
+
+function SkillsColumnSVG({ cols, active }) {
+  const c = active ? '#6366f1' : '#d1d5db'
+  const gap = 3
+  const totalW = 54
+  const colW = (totalW - gap * (cols - 1)) / cols
+  return (
+    <svg viewBox="0 0 58 28" width="58" height="28">
+      {Array.from({ length: cols }).map((_, i) => (
+        <rect
+          key={i}
+          x={4 + i * (colW + gap)}
+          y="6"
+          width={colW}
+          height="16"
+          rx="2"
+          fill={c}
+        />
+      ))}
+    </svg>
+  )
+}
+
+function NameTitleSection({ c, update }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="card">
+      <button
+        className="flex items-center justify-between w-full px-4 py-3.5 border-b border-gray-100"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-sm font-semibold text-gray-900">Name & Role Title</span>
+        {open
+          ? <ChevronUp size={14} className="text-gray-400"/>
+          : <ChevronDown size={14} className="text-gray-400"/>}
+      </button>
+
+      {open && (
+        <div className="p-4 flex flex-col gap-4">
+          {/* Position */}
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Position"/>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'same-line', label: 'Same Line' },
+                { id: 'below',     label: 'Below'     },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => update({ name_title_position: id })}
+                  className={'chip justify-center ' + ((c.name_title_position ?? 'below') === id ? 'chip-active' : '')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name size */}
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Name size"/>
+            <div className="flex gap-1.5">
+              {['S', 'M', 'L'].map((sz) => (
+                <button
+                  key={sz}
+                  onClick={() => update({ name_size: sz })}
+                  className={'chip flex-1 justify-center ' + ((c.name_size ?? 'L') === sz ? 'chip-active' : '')}
+                >
+                  {sz}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name font */}
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Name font"/>
+            <select
+              value={c.name_font ?? 'Inter'}
+              onChange={(e) => update({ name_font: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-indigo-400 focus:outline-none"
+            >
+              {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+
+          {/* Name bold */}
+          <CkBox label="Name bold" value={c.name_bold ?? true} onChange={(v) => update({ name_bold: v })}/>
+
+          {/* Title font */}
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Title font"/>
+            <select
+              value={c.title_font ?? 'Inter'}
+              onChange={(e) => update({ title_font: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-indigo-400 focus:outline-none"
+            >
+              {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+
+          {/* Title bold */}
+          <CkBox label="Title bold" value={c.title_bold ?? false} onChange={(v) => update({ title_bold: v })}/>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Skills Section ──────────────────────────────────────────────────────────
+
+function SkillsSection({ c, update }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="card">
+      <button
+        className="flex items-center justify-between w-full px-4 py-3.5 border-b border-gray-100"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-sm font-semibold text-gray-900">Skills</span>
+        {open
+          ? <ChevronUp size={14} className="text-gray-400"/>
+          : <ChevronDown size={14} className="text-gray-400"/>}
+      </button>
+
+      {open && (
+        <div className="p-4 flex flex-col gap-4">
+          {/* Style toggle */}
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Display style"/>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'grid',   label: 'Grid'   },
+                { id: 'bubble', label: 'Bubble' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => update({ skills_style: id })}
+                  className={'chip justify-center ' + ((c.skills_style ?? 'grid') === id ? 'chip-active' : '')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Grid columns — only when grid */}
+          {(c.skills_style ?? 'grid') === 'grid' && (
+            <div className="flex flex-col gap-1.5">
+              <ColLabel label="Columns"/>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <VisualCard
+                    key={n}
+                    active={(c.skills_columns ?? 1) === n}
+                    onClick={() => update({ skills_columns: n })}
+                  >
+                    <SkillsColumnSVG cols={n} active={(c.skills_columns ?? 1) === n}/>
+                  </VisualCard>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Education Section ───────────────────────────────────────────────────────
+
+function EducationSection({ c, update }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="card">
+      <button
+        className="flex items-center justify-between w-full px-4 py-3.5 border-b border-gray-100"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-sm font-semibold text-gray-900">Education</span>
+        {open
+          ? <ChevronUp size={14} className="text-gray-400"/>
+          : <ChevronDown size={14} className="text-gray-400"/>}
+      </button>
+
+      {open && (
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Title & Subtitle Order"/>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'degree-school', label: 'Degree, School' },
+                { id: 'school-degree', label: 'School, Degree' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => update({ education_title_order: id })}
+                  className={'chip justify-center ' + ((c.education_title_order ?? 'school-degree') === id ? 'chip-active' : '')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Experience Section ──────────────────────────────────────────────────────
+
+function ExperienceSection({ c, update }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="card">
+      <button
+        className="flex items-center justify-between w-full px-4 py-3.5 border-b border-gray-100"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-sm font-semibold text-gray-900">Work Experience</span>
+        {open
+          ? <ChevronUp size={14} className="text-gray-400"/>
+          : <ChevronDown size={14} className="text-gray-400"/>}
+      </button>
+
+      {open && (
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <ColLabel label="Order title/subtitle"/>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'position-company', label: 'Job Title – Employer' },
+                { id: 'company-position', label: 'Employer – Job Title' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => update({ experience_title_order: id })}
+                  className={'chip justify-center ' + ((c.experience_title_order ?? 'company-position') === id ? 'chip-active' : '')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── UI helpers ──────────────────────────────────────────────────────────────
 
 function ModuleSection({ icon: Icon, label, children }) {
@@ -746,8 +1004,20 @@ export default function CustomizePanel() {
       {/* ── MODULE I: PHOTO ── */}
       <PhotoSection c={c} update={update}/>
 
+      {/* ── MODULE: NAME & ROLE TITLE ── */}
+      <NameTitleSection c={c} update={update}/>
+
       {/* ── MODULE II: HEADER LAYOUT ── */}
       <HeaderLayoutSection c={c} update={update}/>
+
+      {/* ── MODULE: SKILLS ── */}
+      <SkillsSection c={c} update={update}/>
+
+      {/* ── MODULE: EDUCATION ── */}
+      <EducationSection c={c} update={update}/>
+
+      {/* ── MODULE: EXPERIENCE ── */}
+      <ExperienceSection c={c} update={update}/>
 
       {/* ── MODULE III: TEMPLATE ── */}
       <ModuleSection icon={LayoutTemplate} label="Template">

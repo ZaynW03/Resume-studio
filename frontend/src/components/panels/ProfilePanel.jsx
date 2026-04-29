@@ -5,8 +5,11 @@ import RichTextEditor from '../editor/RichTextEditor'
 import {
   Briefcase, FolderGit2, GraduationCap, Wrench, Award, FileText,
   Plus, Trash2, Save, ArrowRight, User, Upload,
+  Pencil, MapPin, Mail, Phone, Globe, Link2, Github, MessageCircle, AtSign, Check,
 } from 'lucide-react'
 import { useResumeStore, EMPTY_ENTRY } from '../../store/resumeStore'
+
+const uid = () => Math.random().toString(36).slice(2, 14)
 
 function mergeProfilePreservingUntouched(latest = {}, incoming = {}) {
   return {
@@ -31,11 +34,106 @@ const POOLS = [
   { key: 'summaries',   type: 'summary',    label: 'Summaries',  Icon: FileText,       factory: EMPTY_ENTRY.summary    },
 ]
 
-// Top pane: authoritative personal details, stored in the profile library.
-function PersonalPane({ profile, setProfile, setDirty }) {
+// Contact fields shown in preview card
+const PREVIEW_FIELDS = [
+  { key: 'location', Icon: MapPin },
+  { key: 'email',    Icon: Mail },
+  { key: 'phone',    Icon: Phone },
+  { key: 'website',  Icon: Globe },
+  { key: 'linkedin', Icon: Link2 },
+  { key: 'github',   Icon: Github },
+  { key: 'wechat',   Icon: MessageCircle },
+  { key: 'qq',       Icon: AtSign },
+]
+
+// Quick-add presets for custom fields
+const PRESET_EXTRAS = [
+  { icon: '⚧',  label: 'Gender'     },
+  { icon: '📸', label: 'Instagram'  },
+  { icon: '𝕏',  label: 'Twitter/X'  },
+  { icon: '✈️', label: 'Telegram'   },
+  { icon: '🎮', label: 'Discord'    },
+  { icon: '🌏', label: 'Nationality'},
+  { icon: '🎂', label: 'Birthday'   },
+]
+
+// ─── Personal preview card ────────────────────────────────────────────────────
+
+function PersonalPreviewCard({ P, onEdit }) {
+  const visibleContacts = PREVIEW_FIELDS.filter(({ key }) => P[key])
+  const visibleExtras   = (P.extra_fields || []).filter((f) => f.value)
+  const empty = visibleContacts.length === 0 && visibleExtras.length === 0
+
+  return (
+    <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-6">
+        {/* Edit button */}
+        <button
+          onClick={onEdit}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-indigo-500 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors shadow-sm"
+          title="Edit personal details"
+        >
+          <Pencil size={14}/>
+        </button>
+
+        {/* Name + job title */}
+        <div className="mb-5 pr-12">
+          {P.full_name ? (
+            <h2 className="text-2xl font-bold text-gray-900 leading-snug">{P.full_name}</h2>
+          ) : (
+            <h2 className="text-lg font-normal text-gray-300 italic">Your Name</h2>
+          )}
+          {P.job_title && (
+            <p className="text-sm text-gray-400 mt-0.5">{P.job_title}</p>
+          )}
+        </div>
+
+        {/* Photo + contacts */}
+        <div className="flex gap-5">
+          {/* Photo */}
+          <div className="flex-shrink-0">
+            {P.photo_url ? (
+              <img
+                src={P.photo_url}
+                className="w-[88px] h-[108px] object-cover rounded-lg border border-gray-100"
+              />
+            ) : (
+              <div className="w-[88px] h-[108px] rounded-lg bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center">
+                <User size={24} className="text-gray-300"/>
+              </div>
+            )}
+          </div>
+
+          {/* Contact list */}
+          <div className="flex flex-col gap-2 min-w-0 flex-1 justify-center">
+            {visibleContacts.map(({ key, Icon }) => (
+              <div key={key} className="flex items-center gap-2.5">
+                <Icon size={13} className="text-indigo-400 flex-shrink-0"/>
+                <span className="text-xs text-gray-700 truncate">{P[key]}</span>
+              </div>
+            ))}
+            {visibleExtras.map((f) => (
+              <div key={f.id || f.label} className="flex items-center gap-2.5">
+                <span className="text-sm leading-none w-3.5 text-center flex-shrink-0 select-none">{f.icon || '·'}</span>
+                <span className="text-xs text-gray-700 truncate">{f.value}</span>
+              </div>
+            ))}
+            {empty && (
+              <p className="text-xs text-gray-300 italic">Click ✏ to add contact info</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Personal edit form ───────────────────────────────────────────────────────
+
+function PersonalEditForm({ profile, setProfile, setDirty, onDone }) {
   const updatePersonal = useResumeStore((s) => s.updatePersonal)
-  const [photoBusy, setPhotoBusy] = useState(false)
-  const [photoErr, setPhotoErr] = useState('')
+  const [photoBusy, setPhotoBusy]   = useState(false)
+  const [photoErr,  setPhotoErr]    = useState('')
 
   const P = profile.personal || {}
 
@@ -45,16 +143,31 @@ function PersonalPane({ profile, setProfile, setDirty }) {
     setDirty(true)
   }
 
+  const setExtras = (extras) => update({ extra_fields: extras })
+
+  const addExtra = (preset = null) => {
+    const f = preset
+      ? { id: uid(), icon: preset.icon, label: preset.label, value: '' }
+      : { id: uid(), icon: '', label: '', value: '' }
+    setExtras([...(P.extra_fields || []), f])
+  }
+
+  const patchExtra = (id, patch) =>
+    setExtras((P.extra_fields || []).map((f) => (f.id === id ? { ...f, ...patch } : f)))
+
+  const removeExtra = (id) =>
+    setExtras((P.extra_fields || []).filter((f) => f.id !== id))
+
   const uploadPhoto = async (file) => {
     if (!file) return
     setPhotoBusy(true); setPhotoErr('')
     try {
       const { url } = await api.uploadPhoto(file)
-      const nextProfile = { ...profile, personal: { ...(profile.personal || {}), photo_url: url } }
-      setProfile(nextProfile)
+      const next = { ...profile, personal: { ...(P), photo_url: url } }
+      setProfile(next)
       updatePersonal({ photo_url: url })
       setDirty(true)
-      try { await api.saveProfile(nextProfile) } catch { /* ignore; user can manually save */ }
+      try { await api.saveProfile(next) } catch { /* silent */ }
     } catch (e) {
       setPhotoErr(String(e.message || e))
     } finally {
@@ -64,76 +177,154 @@ function PersonalPane({ profile, setProfile, setDirty }) {
 
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100">
-        <User size={13} className="text-indigo-500"/>
-        <div className="text-[11px] font-semibold text-gray-900 uppercase tracking-[0.15em]">
-          Personal details
+      {/* Header */}
+      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <User size={13} className="text-indigo-500"/>
+          <span className="text-[11px] font-semibold text-gray-900 uppercase tracking-[0.15em]">Personal details</span>
         </div>
+        <button
+          onClick={onDone}
+          className="flex items-center gap-1 text-xs font-medium text-indigo-500 hover:text-indigo-700"
+        >
+          <Check size={12}/> Done
+        </button>
       </div>
 
-      <div className="p-3.5 flex flex-col gap-3">
+      <div className="p-3.5 flex flex-col gap-4">
+        {/* Photo */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             {P.photo_url ? (
               <img src={P.photo_url}
-                onError={(e) => { e.currentTarget.style.display = 'none'; setPhotoErr(`Image failed to load from ${P.photo_url} — backend not running or proxy misconfigured.`) }}
-                className="w-16 h-16 rounded-full object-cover border border-white/10"/>
+                onError={(e) => { e.currentTarget.style.display='none'; setPhotoErr('Image failed to load.') }}
+                className="w-16 h-16 rounded-full object-cover border border-gray-200"/>
             ) : (
               <div className="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400">
-                <User size={24}/>
+                <User size={22}/>
               </div>
             )}
-            <label className={
-              "cursor-pointer text-xs flex items-center gap-1 " +
-              (photoBusy ? "text-zinc-500 pointer-events-none" : "text-cyan-400 hover:text-cyan-300")
-            }>
+            <label className={'cursor-pointer text-xs flex items-center gap-1 ' +
+              (photoBusy ? 'text-gray-400 pointer-events-none' : 'text-indigo-500 hover:text-indigo-700')}>
               <Upload size={12}/>
               {photoBusy ? 'Uploading…' : 'Upload photo'}
               <input type="file" accept="image/*" className="hidden" disabled={photoBusy}
                 onChange={(e) => uploadPhoto(e.target.files?.[0])}/>
             </label>
             {P.photo_url && (
-              <button className="text-xs text-zinc-500 hover:text-red-400" onClick={() => update({ photo_url: '' })}>
+              <button className="text-xs text-gray-400 hover:text-red-400" onClick={() => update({ photo_url: '' })}>
                 Remove
               </button>
             )}
           </div>
           {photoErr && (
-            <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-2 py-1.5">
-              {photoErr}
-              <div className="text-red-300/70 mt-0.5">
-                Check <a href="http://localhost:8000/api/diagnostics" target="_blank" rel="noreferrer"
-                  className="underline hover:text-cyan-400">diagnostics</a>.
-              </div>
-            </div>
-          )}
-          {P.photo_url && !photoErr && (
-            <div className="text-[10px] text-zinc-500 font-mono truncate">
-              ✓ saved at {P.photo_url}
-            </div>
+            <div className="text-[11px] text-red-400 bg-red-50 border border-red-100 rounded px-2 py-1.5">{photoErr}</div>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <TextField label="Full name" value={P.full_name} onChange={(v) => update({ full_name: v })}/>
-          <TextField label="Job title" value={P.job_title} onChange={(v) => update({ job_title: v })}/>
-          <TextField label="Email"     value={P.email}     onChange={(v) => update({ email: v })}/>
-          <TextField label="Phone"     value={P.phone}     onChange={(v) => update({ phone: v })}/>
-          <TextField label="Location"  value={P.location}  onChange={(v) => update({ location: v })}/>
-          <TextField label="Website"   value={P.website}   onChange={(v) => update({ website: v })}/>
-          <TextField label="LinkedIn"  value={P.linkedin}  onChange={(v) => update({ linkedin: v })}/>
-          <TextField label="GitHub"    value={P.github}    onChange={(v) => update({ github: v })}/>
-          <TextField label="WeChat"    value={P.wechat}    onChange={(v) => update({ wechat: v })}/>
-          <TextField label="QQ"        value={P.qq}        onChange={(v) => update({ qq: v })}/>
+        {/* Built-in fields */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <TextField label="Full name"  value={P.full_name}  onChange={(v) => update({ full_name: v })}/>
+          <TextField label="Job title"  value={P.job_title}  onChange={(v) => update({ job_title: v })}/>
+          <TextField label="Email"      value={P.email}      onChange={(v) => update({ email: v })}/>
+          <TextField label="Phone"      value={P.phone}      onChange={(v) => update({ phone: v })}/>
+          <TextField label="Location"   value={P.location}   onChange={(v) => update({ location: v })}/>
+          <TextField label="Website"    value={P.website}    onChange={(v) => update({ website: v })}/>
+          <TextField label="LinkedIn"   value={P.linkedin}   onChange={(v) => update({ linkedin: v })}/>
+          <TextField label="GitHub"     value={P.github}     onChange={(v) => update({ github: v })}/>
+          <TextField label="WeChat"     value={P.wechat}     onChange={(v) => update({ wechat: v })}/>
+          <TextField label="QQ"         value={P.qq}         onChange={(v) => update({ qq: v })}/>
         </div>
 
-        <div className="text-[10px] text-zinc-500">
-          Edits here update the preview instantly.
+        {/* Custom / extra fields */}
+        <div className="flex flex-col gap-2">
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.15em]">
+            Custom fields
+          </div>
+
+          {(P.extra_fields || []).map((f) => (
+            <div key={f.id} className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={f.icon || ''}
+                onChange={(e) => patchExtra(f.id, { icon: e.target.value })}
+                placeholder="🔖"
+                maxLength={4}
+                className="w-9 text-center border border-gray-200 rounded-lg px-1 py-1.5 text-sm bg-white focus:border-indigo-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                value={f.label || ''}
+                onChange={(e) => patchExtra(f.id, { label: e.target.value })}
+                placeholder="Label"
+                className="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:border-indigo-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                value={f.value || ''}
+                onChange={(e) => patchExtra(f.id, { value: e.target.value })}
+                placeholder="Value"
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:border-indigo-400 focus:outline-none"
+              />
+              <button
+                onClick={() => removeExtra(f.id)}
+                className="p-1 text-gray-300 hover:text-red-400 rounded"
+              >
+                <Trash2 size={13}/>
+              </button>
+            </div>
+          ))}
+
+          {/* Preset quick-add buttons */}
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {PRESET_EXTRAS.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => addExtra(preset)}
+                className="flex items-center gap-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              >
+                <span>{preset.icon}</span>
+                <span>{preset.label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => addExtra()}
+              className="flex items-center gap-1 text-[11px] border border-dashed border-gray-200 rounded-lg px-2 py-1 text-gray-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              <Plus size={10}/> Custom
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
+
+// ─── PersonalPane — switches between preview and edit ─────────────────────────
+
+function PersonalPane({ profile, setProfile, setDirty }) {
+  const [editing, setEditing] = useState(false)
+
+  if (editing) {
+    return (
+      <PersonalEditForm
+        profile={profile}
+        setProfile={setProfile}
+        setDirty={setDirty}
+        onDone={() => setEditing(false)}
+      />
+    )
+  }
+
+  return (
+    <PersonalPreviewCard
+      P={profile.personal || {}}
+      onEdit={() => setEditing(true)}
+    />
+  )
+}
+
+// ─── EntryCard ────────────────────────────────────────────────────────────────
 
 function EntryCard({ poolKey, entry, onChange, onRemove, onImport }) {
   const primary = {
@@ -228,6 +419,8 @@ function EntryCard({ poolKey, entry, onChange, onRemove, onImport }) {
   )
 }
 
+// ─── ProfilePanel ─────────────────────────────────────────────────────────────
+
 export default function ProfilePanel() {
   const [profile, setProfile] = useState(null)
   const [openPool, setOpenPool] = useState('experiences')
@@ -308,7 +501,7 @@ export default function ProfilePanel() {
       </div>
 
       <div className="p-4 pt-3 flex flex-col gap-3">
-        <PersonalPane profile={profile} setProfile={setProfile} setDirty={setDirty} />
+        <PersonalPane profile={profile} setProfile={setProfile} setDirty={setDirty}/>
 
         <div className="panel-title pt-2">Entries</div>
 

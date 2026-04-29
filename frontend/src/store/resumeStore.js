@@ -38,6 +38,19 @@ const DEFAULT_CUSTOMIZE = {
   contacts_columns: 'single',
   contact_separator: 'icon',
   photo_grayscale: false,
+  // Name & Role Title
+  name_title_position: 'below',
+  name_size: 'L',
+  name_bold: true,
+  name_font: 'Inter',
+  title_bold: false,
+  title_font: 'Inter',
+  // Skills
+  skills_style: 'grid',
+  skills_columns: 1,
+  // Education & Experience title order
+  education_title_order: 'school-degree',
+  experience_title_order: 'company-position',
 }
 
 const DEFAULT_PERSONAL = {
@@ -56,6 +69,7 @@ const DEFAULT_PERSONAL = {
   photo_url: '',
   visible_fields: [],
   hidden_fields: [],
+  extra_fields: [],
 }
 
 export const PERSONAL_FIELD_ORDER = [
@@ -306,8 +320,8 @@ export const useResumeStore = create((set, get) => ({
   save: async () => {
     set({ saving: true })
     try {
-      const saved = await api.saveResume(normalizeResume(get().resume))
-      set({ resume: normalizeResume(saved), savedAt: new Date(), saving: false })
+      await api.saveResume(normalizeResume(get().resume))
+      set({ savedAt: new Date(), saving: false })
     } catch (e) {
       set({ saving: false })
       throw e

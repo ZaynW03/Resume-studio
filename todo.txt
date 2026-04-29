@@ -1,21 +1,19 @@
 cv dashboard:
-customize页面：优化photo 和name、role title的布局
-Ⅰ.photo module：
-1.删掉grayscale
-2.shape中的后三个选项bug修复
-3.top选项头像在entries上方，
-Ⅰ.header layout:
-1.left选项选中后，photo position只能在left和right中选（ban掉top）
-2.icon\bullet\bar间隔失效，删掉none
-Ⅱ.增加name&role title模块：
-1.选择Try Same line以及Below
-2.name、title永远在entries上面行显示
-Ⅲ.增加skills模块
-Ⅳ.exprience、education模块
-永远inline
 
-Content页面：
-优化personal detail面板（no need for tips）
-
+增强模板可拓展性
+double column的换行问题
+第二页问题
+语言切换不灵
 recent resume增加去重功能，删掉重复的简历
+
+
+Ⅰ.增加name&role title模块：图一
+1.对name和titlelayout提供Same line以及Below选项
+2.name、title永远在entries上面行显示
+3.允许选择二者字体
+Ⅱ.增加skills模块
+1.grid模式（单列 /双列/三列/四列展示）图二
+2.bubble模式图三
+Ⅲ.exprience、education模块
+选择二者左右位置，但是永远在同一行显示图四
 	

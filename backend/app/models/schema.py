@@ -29,6 +29,8 @@ class PersonalDetails(BaseModel):
     visible_fields: list[str] = []
     # Which fields are hidden in the rendered resume, while still editable in the UI.
     hidden_fields: list[str] = []
+    # User-defined extra fields: [{id, icon, label, value}]
+    extra_fields: list[dict] = []
 
 
 class EducationEntry(BaseModel):
@@ -120,7 +122,7 @@ class ResumeModule(BaseModel):
 
 class Customize(BaseModel):
     # layout
-    template: str = "flowcv-style"                         # classic | flowcv-style
+    template: str = "flowcv-style"                         # classic | flowcv-style (studio)
     columns: Literal["single", "two"] = "single"
     page_breaks: list[str] = []                            # list of module ids after which to break
 
@@ -193,6 +195,23 @@ class Customize(BaseModel):
     contacts_columns: Literal["single", "double", "inline"] = "single"
     # Contact separator style (icon | bullet | bar | none)
     contact_separator: Literal["icon", "bullet", "bar", "none"] = "icon"
+
+    # ── Name & Role Title ──
+    name_title_position: Literal["same-line", "below"] = "below"
+    name_size: Literal["S", "M", "L"] = "L"
+    name_bold: bool = True
+    name_font: str = "Inter"
+    title_bold: bool = False
+    title_font: str = "Inter"
+
+    # ── Skills ──
+    skills_style: Literal["grid", "bubble"] = "grid"
+    skills_columns: int = 1   # 1..4
+
+    # ── Education & Experience title order (always inline) ──
+    education_title_order: Literal["school-degree", "degree-school"] = "school-degree"
+    experience_title_order: Literal["company-position", "position-company"] = "company-position"
+
 
 
 class Resume(BaseModel):

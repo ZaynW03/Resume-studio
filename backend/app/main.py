@@ -16,7 +16,7 @@ DATA_DIR = BASE_DIR / "data"
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 
-app = FastAPI(title="FlowCV Clone API", version="0.1.0")
+app = FastAPI(title="Resume Studio API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +37,7 @@ app.include_router(export.router, prefix="/api/export", tags=["export"])
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "flowcv-clone"}
+    return {"status": "ok", "service": "resume-studio"}
 
 
 @app.get("/api/health")

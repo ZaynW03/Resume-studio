@@ -42,19 +42,42 @@
     {% if c.photo_position == 'top' %}flex-direction: column; align-items: {% if c.personal_alignment == 'center' %}center{% elif c.personal_alignment == 'right' %}flex-end{% else %}flex-start{% endif %};{% endif %}
   }
   .header-info { flex: 1; min-width: 0; text-align: {{ c.personal_alignment }}; }
+  {% set _name_mult = {'S': 1.6, 'M': 1.9, 'L': 2.2} %}
   .header-info .name-role-wrapper h1 {
-    font-size: {{ c.font_size * 2.2 }}pt;
-    font-weight: 700;
+    font-family: "{{ c.name_font | default('Inter') }}", sans-serif;
+    font-size: {{ c.font_size * _name_mult.get(c.name_size, 2.2) }}pt;
+    font-weight: {% if c.name_bold | default(true) %}700{% else %}400{% endif %};
     margin: 0;
     line-height: 1.1;
   }
   .header-info .name-role-wrapper .job-title {
-    font-weight: 600; color: {{ c.accent_color }};
+    font-family: "{{ c.title_font | default('Inter') }}", sans-serif;
+    font-weight: {% if c.title_bold | default(false) %}700{% else %}400{% endif %};
+    color: {{ c.accent_color }};
     font-size: {{ c.font_size * 1.15 }}pt;
   }
-  .header-info.align-left .name-role-wrapper { display: flex; align-items: baseline; gap: 12px; }
-  .header-info.align-center .name-role-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .header-info.align-right .name-role-wrapper { display: flex; align-items: baseline; justify-content: flex-end; gap: 12px; }
+  {% if c.name_title_position | default('below') == 'same-line' %}
+  .name-role-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: baseline;
+    gap: 12px;
+    {% if c.personal_alignment == 'center' %}justify-content: center;{% endif %}
+    {% if c.personal_alignment == 'right' %}justify-content: flex-end;{% endif %}
+  }
+  .name-role-wrapper h1,
+  .name-role-wrapper .job-title { flex-shrink: 0; white-space: nowrap; }
+  {% else %}
+  .name-role-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    {% if c.personal_alignment == 'center' %}align-items: center;{% endif %}
+    {% if c.personal_alignment == 'right' %}align-items: flex-end;{% endif %}
+    {% if c.personal_alignment == 'left' %}align-items: flex-start;{% endif %}
+  }
+  {% endif %}
 
   .contact-list {
     margin-top: 8px;
@@ -173,9 +196,34 @@
   {% endblock %}
 
   {# ── Skills ── #}
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat({{ c.skills_columns | default(1) }}, 1fr);
+    gap: 6px 18px;
+  }
   .skills-group { margin-bottom: 6px; }
   .skills-cat { font-weight: 700; margin-bottom: 1px; }
   .skills-items { color: #374151; }
+
+  {# bubble mode #}
+  .skills-bubble-list { display: flex; flex-direction: column; gap: 6px; }
+  .skills-bubble { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px; }
+  .skills-bubble .sb-cat {
+    font-weight: 600; font-size: {{ c.font_size * 0.92 }}pt;
+    color: #374151; white-space: nowrap; margin-right: 2px;
+  }
+  .skills-bubble .sb-tag {
+    display: inline-flex; align-items: center;
+    background: {{ c.accent_color }}1a;
+    color: {{ c.accent_color }};
+    border: 1px solid {{ c.accent_color }}55;
+    border-radius: 99px;
+    padding: 1px 9px;
+    font-size: {{ c.font_size * 0.88 }}pt;
+    white-space: nowrap;
+    line-height: 1.65;
+  }
+
 
   {# ── Misc ── #}
   {% block css_misc %}
@@ -255,6 +303,17 @@
           </div>
         {% endif %}
       {% endfor %}
+      {# Extra custom fields #}
+      {% for ef in (P.extra_fields | default([])) %}
+        {% if ef.get('value') %}
+          {% if sep_ns.fi > 0 and _inline and _sep in ['bullet','bar'] %}<span class="contact-sep">{{ '•' if _sep == 'bullet' else '|' }}</span>{% endif %}
+          {% set sep_ns.fi = sep_ns.fi + 1 %}
+          <div class="contact-item">
+            <span class="icon" style="font-size:11px;line-height:1;">{{ ef.get('icon', '') }}</span>
+            <span>{{ ef.value }}</span>
+          </div>
+        {% endif %}
+      {% endfor %}
     </div>
   </div>
 </div>
@@ -265,11 +324,13 @@
 {# ═══  MODULES  ════════════════════════════════════════════════════════════ #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {% set entry_layout = c.entry_layout | default('inline') %}
+
 <div class="modules-wrapper">
 {% for m in resume.modules %}
   {% if not m.hidden %}
     {% if m.type == 'page_break' %}
       <div class="page-break"></div>
+
     {% else %}
     {% set visible_entries = [] %}
     {% for e in m.entries %}
@@ -292,9 +353,17 @@
       {% elif m.type == 'education' %}
         {% for e in visible_entries %}
           {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), false, date_fmt) %}
-          {% set sub = e.get('degree','') %}
-          {% if e.get('field_of_study') %}{% set sub = sub + ', ' + e.field_of_study %}{% endif %}
-          {% if e.get('is_full_time') == false %}{% set sub = sub + ' (Part-time)' %}{% endif %}
+          {% set sub_text = e.get('degree','') %}
+          {% if e.get('field_of_study') %}{% set sub_text = sub_text + ', ' + e.field_of_study %}{% endif %}
+          {% if e.get('is_full_time') == false %}{% set sub_text = sub_text + ' (Part-time)' %}{% endif %}
+          {# Determine title/sub order based on education_title_order #}
+          {% if c.education_title_order | default('school-degree') == 'degree-school' %}
+            {% set edu_title = sub_text %}
+            {% set edu_sub = e.get('school','') %}
+          {% else %}
+            {% set edu_title = e.get('school','') %}
+            {% set edu_sub = sub_text %}
+          {% endif %}
           {% if entry_layout == 'left-col' %}
             <div class="entry layout-left-col">
               <div class="col-left">
@@ -302,8 +371,8 @@
                 {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
               </div>
               <div class="col-right">
-                <div class="entry-title">{{ e.get('school','') }}</div>
-                {% if sub %}<div class="entry-sub">{{ sub }}</div>{% endif %}
+                <div class="entry-title">{{ edu_title }}</div>
+                {% if edu_sub %}<div class="entry-sub">{{ edu_sub }}</div>{% endif %}
                 {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
@@ -311,8 +380,8 @@
           {% elif entry_layout == 'right-col' %}
             <div class="entry layout-right-col">
               <div class="col-left">
-                <div class="entry-title">{{ e.get('school','') }}</div>
-                {% if sub %}<div class="entry-sub">{{ sub }}</div>{% endif %}
+                <div class="entry-title">{{ edu_title }}</div>
+                {% if edu_sub %}<div class="entry-sub">{{ edu_sub }}</div>{% endif %}
                 {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
@@ -323,10 +392,10 @@
             </div>
           {% else %}
             <div class="entry layout-inline">
-              <div class="entry-title">{{ e.get('school','') }}</div>
+              <div class="entry-title">{{ edu_title }}</div>
               <div class="meta-row">
                 {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
-                {% if sub %}<span class="meta-sub">{{ sub }}</span>{% endif %}
+                {% if edu_sub %}<span class="meta-sub">{{ edu_sub }}</span>{% endif %}
                 {% if e.get('location') %}<span class="meta-loc">{{ e.location }}</span>{% endif %}
               </div>
               {% if e.get('gpa') %}<div style="margin-top:2px;">GPA: {{ e.gpa }}</div>{% endif %}
@@ -338,6 +407,14 @@
       {% elif m.type == 'experience' %}
         {% for e in visible_entries %}
           {% set drange = format_range(e.get('start_date',''), e.get('end_date',''), e.get('currently_working', false), date_fmt) %}
+          {# Determine title/sub order based on experience_title_order #}
+          {% if c.experience_title_order | default('company-position') == 'position-company' %}
+            {% set exp_title = e.get('position','') %}
+            {% set exp_sub = e.get('company','') %}
+          {% else %}
+            {% set exp_title = e.get('company','') %}
+            {% set exp_sub = e.get('position','') %}
+          {% endif %}
           {% if entry_layout == 'left-col' %}
             <div class="entry layout-left-col">
               <div class="col-left">
@@ -345,16 +422,16 @@
                 {% if e.get('location') %}<div>{{ e.location }}</div>{% endif %}
               </div>
               <div class="col-right">
-                <div class="entry-title">{{ e.get('company','') }}</div>
-                {% if e.get('position') %}<div class="entry-sub">{{ e.position }}</div>{% endif %}
+                <div class="entry-title">{{ exp_title }}</div>
+                {% if exp_sub %}<div class="entry-sub">{{ exp_sub }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
             </div>
           {% elif entry_layout == 'right-col' %}
             <div class="entry layout-right-col">
               <div class="col-left">
-                <div class="entry-title">{{ e.get('company','') }}</div>
-                {% if e.get('position') %}<div class="entry-sub">{{ e.position }}</div>{% endif %}
+                <div class="entry-title">{{ exp_title }}</div>
+                {% if exp_sub %}<div class="entry-sub">{{ exp_sub }}</div>{% endif %}
                 {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
               </div>
               <div class="col-right">
@@ -364,10 +441,10 @@
             </div>
           {% else %}
             <div class="entry layout-inline">
-              <div class="entry-title">{{ e.get('company','') }}</div>
+              <div class="entry-title">{{ exp_title }}</div>
               <div class="meta-row">
                 {% if drange %}<span class="meta-date">{{ drange }}</span>{% endif %}
-                {% if e.get('position') %}<span class="meta-sub">{{ e.position }}</span>{% endif %}
+                {% if exp_sub %}<span class="meta-sub">{{ exp_sub }}</span>{% endif %}
                 {% if e.get('location') %}<span class="meta-loc">{{ e.location }}</span>{% endif %}
               </div>
               {% if e.get('description') %}<div class="entry-desc">{{ e.description | safe }}</div>{% endif %}
@@ -419,15 +496,31 @@
         {% endfor %}
 
       {% elif m.type == 'skills' %}
-        {% for e in visible_entries %}
-          <div class="skills-group">
-            {% if e.get('category') %}<div class="skills-cat">{{ e.category }}</div>{% endif %}
-            <div class="skills-items">
-              {{ (e.get('items') or []) | join(', ') }}
-              {% if e.get('level') %} <em style="color:#6b7280;">({{ e.level }})</em>{% endif %}
+        {% if c.skills_style | default('grid') == 'bubble' %}
+          <div class="skills-bubble-list">
+          {% for e in visible_entries %}
+            <div class="skills-bubble">
+              {% if e.get('category') %}<span class="sb-cat">{{ e.category }}</span>{% endif %}
+              {% for item in (e.get('items') or []) %}
+                <span class="sb-tag">{{ item }}</span>
+              {% endfor %}
+              {% if e.get('level') %}<span class="sb-tag" style="border-style:dashed;opacity:0.7;">{{ e.level }}</span>{% endif %}
             </div>
+          {% endfor %}
           </div>
-        {% endfor %}
+        {% else %}
+          <div class="skills-grid">
+          {% for e in visible_entries %}
+            <div class="skills-group">
+              {% if e.get('category') %}<div class="skills-cat">{{ e.category }}</div>{% endif %}
+              <div class="skills-items">
+                {{ (e.get('items') or []) | join(', ') }}
+                {% if e.get('level') %} <em style="color:#6b7280;">({{ e.level }})</em>{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          </div>
+        {% endif %}
 
       {% elif m.type == 'awards' %}
         {% for e in visible_entries %}

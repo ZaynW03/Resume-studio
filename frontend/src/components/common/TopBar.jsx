@@ -43,10 +43,11 @@ export default function TopBar({ onImportParsed }) {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const lastSaved = useRef(null)
+  const lastSavedJson = useRef('')
   useEffect(() => {
-    if (lastSaved.current === resume) return
-    lastSaved.current = resume
+    const json = JSON.stringify(resume)
+    if (lastSavedJson.current === json) return
+    lastSavedJson.current = json
     const timer = setTimeout(() => { save().then(refreshList).catch(() => {}) }, 1500)
     return () => clearTimeout(timer)
   }, [resume, save])

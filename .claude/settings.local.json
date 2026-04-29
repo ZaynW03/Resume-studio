@@ -50,7 +50,10 @@
       "Bash(timeout 8 .venv/Scripts/uvicorn app.main:app --port 8000)",
       "Bash(netstat -ano)",
       "Bash(taskkill *)",
-      "Bash(.venv/Scripts/python -m uvicorn app.main:app --reload --port 8000)"
+      "Bash(.venv/Scripts/python -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(awk '{print $5}')",
+      "Bash(xargs -I{} taskkill /F /PID {})",
+      "Bash(tasklist)"
     ]
   }
 }
