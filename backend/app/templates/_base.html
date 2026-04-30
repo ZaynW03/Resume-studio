@@ -186,8 +186,9 @@
   .entry-title { font-weight: 700; font-size: {{ c.entry_title_size }}pt; color: {{ c.text_color }}; }
   .entry-sub { font-style: italic; color: #374151; font-size: {{ c.font_size * 0.98 }}pt; margin-top: 1px; }
   .entry-desc { margin-top: 3px; }
-  .entry-desc ul { margin: 2px 0 2px 16px; padding: 0; }
-  .entry-desc li { margin: 1px 0; }
+  .entry-desc ul { list-style: none; margin: 2px 0 2px 0; padding: 0; }
+  .entry-desc li { margin: 1px 0; padding-left: 14px; position: relative; }
+  .entry-desc li::before { content: '•'; position: absolute; left: 0; line-height: inherit; }
   .entry-desc p { margin: 0 0 3px; }
   {% endblock %}
 
@@ -234,8 +235,9 @@
   {% block css_misc %}
   a { color: {{ c.accent_color }}; text-decoration: none; }
   {% endblock %}
-  ul { margin: 4px 0 4px 18px; padding: 0; }
-  li { margin: 1px 0; }
+  ul { list-style: none; margin: 4px 0 4px 0; padding: 0; }
+  li { margin: 1px 0; padding-left: 14px; position: relative; }
+  li::before { content: '•'; position: absolute; left: 0; line-height: inherit; }
   p { margin: 0 0 3px; }
   .page-break { page-break-after: always; }
 

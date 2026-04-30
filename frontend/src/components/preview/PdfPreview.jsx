@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { useResumeStore } from '../../store/resumeStore'
 import {
   Download, Loader2, ZoomIn, ZoomOut, Maximize2, AlertTriangle, Printer,
@@ -19,23 +19,14 @@ const PAPER = {
   Letter: { w: 816,  h: 1056, mm: { w: 216, h: 279 } },
 }
 
-function toRoman(n) {
-  if (n < 1) return ''
-  const map = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],
-               [50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]
-  let out = ''
-  for (const [v, s] of map) { while (n >= v) { out += s; n -= v } }
-  return out
-}
-
 function splitHtmlDocument(fullHtml) {
-  const headMatch = fullHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i)
+  const headMatch    = fullHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i)
   const bodyTagMatch = fullHtml.match(/<body[^>]*>/i)
-  const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+  const bodyMatch    = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
   return {
-    head: headMatch ? headMatch[1] : '',
-    bodyTag: bodyTagMatch ? bodyTagMatch[0] : '<body>',
-    bodyContent: bodyMatch ? bodyMatch[1] : fullHtml,
+    head:        headMatch    ? headMatch[1]    : '',
+    bodyTag:     bodyTagMatch ? bodyTagMatch[0] : '<body>',
+    bodyContent: bodyMatch    ? bodyMatch[1]    : fullHtml,
   }
 }
 
@@ -43,30 +34,24 @@ function serializeHtmlPage({ head, bodyTag, bodyInnerHtml }) {
   return `<!DOCTYPE html><html><head>${head}</head>${bodyTag}${bodyInnerHtml}</body></html>`
 }
 
-function withBase(fullHtml, extraHead = '') {
+function withBase(fullHtml) {
   return fullHtml.replace(
     /<head([^>]*)>/i,
-    `<head$1><base href="${window.location.origin}/">${extraHead}`,
+    `<head$1><base href="${window.location.origin}/">`,
   )
 }
 
 async function waitForFrameAssets(doc, extraMs = 150) {
-  const fontsReady = doc.fonts?.ready?.catch?.(() => {}) || Promise.resolve()
-  const imagesReady = new Promise((resolve) => {
+  const fontsReady   = doc.fonts?.ready?.catch?.(() => {}) || Promise.resolve()
+  const imagesReady  = new Promise((resolve) => {
     const imgs = Array.from(doc.images || [])
-    if (imgs.length === 0) {
-      setTimeout(resolve, 80)
-      return
-    }
+    if (imgs.length === 0) { setTimeout(resolve, 80); return }
     let left = imgs.length
-    const done = () => {
-      left -= 1
-      if (left <= 0) resolve()
-    }
+    const done = () => { if (--left <= 0) resolve() }
     imgs.forEach((img) => {
       if (img.complete) done()
       else {
-        img.addEventListener('load', done, { once: true })
+        img.addEventListener('load',  done, { once: true })
         img.addEventListener('error', done, { once: true })
       }
     })
@@ -77,29 +62,47 @@ async function waitForFrameAssets(doc, extraMs = 150) {
 }
 
 /**
- * Create a hidden iframe for rendering.
- * Positioned at (0,0) with opacity:0 rather than off-screen: browsers skip
- * flex-layout and SVG alignment computations for elements far outside the
- * viewport, which causes html2canvas to mis-position icons and borders.
- * opacity:0 + pointer-events:none keeps it invisible and non-interactive.
+ * Measurement iframe: positioned at (0,0) with opacity:0 so browsers compute
+ * flex/SVG layout normally (off-screen elements skip some calculations).
  */
 function makeHiddenFrame(w, h) {
   const frame = document.createElement('iframe')
   frame.setAttribute('scrolling', 'no')
   frame.style.cssText = [
-    'position:fixed',
-    'left:0',
-    'top:0',
-    `width:${w}px`,
-    `height:${h}px`,
-    'border:0',
-    'background:white',
-    'overflow:hidden',
-    'pointer-events:none',
-    'opacity:0',
-    'z-index:-1',
+    'position:fixed', 'left:0', 'top:0',
+    `width:${w}px`, `height:${h}px`,
+    'border:0', 'background:white', 'overflow:hidden',
+    'pointer-events:none', 'opacity:0', 'z-index:-1',
   ].join(';')
   return frame
+}
+
+// Inline styles for page slices so there are no CSS-class conflicts when
+// multiple pages share a document (print window), and so html2canvas sees
+// standard positioned layout instead of CSS transforms.
+function makePageHtml({ head, paper, paddingTop, paddingRight, paddingBottom, paddingLeft,
+                        contentWidth, pageContentH, start, bodyContent }) {
+  const minStyle = `<style>
+    html,body{margin:0!important;padding:0!important;overflow:hidden!important;background:white!important;}
+    .page-break{visibility:hidden!important;height:0!important;margin:0!important;padding:0!important;}
+  </style>`
+
+  // Use position:absolute + top:-Npx (not CSS transform) — html2canvas handles
+  // absolute positioning + overflow:hidden more reliably than transforms.
+  const bodyInnerHtml =
+    `<div style="box-sizing:border-box;width:${paper.w}px;height:${paper.h}px;` +
+    `padding:${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px;` +
+    `overflow:hidden;background:white;">` +
+    `<div style="width:${contentWidth}px;height:${pageContentH}px;overflow:hidden;position:relative;">` +
+    `<div style="width:${contentWidth}px;position:absolute;top:-${start}px;left:0;">` +
+    bodyContent +
+    `</div></div></div>`
+
+  return serializeHtmlPage({
+    head: head + minStyle,
+    bodyTag: '<body>',
+    bodyInnerHtml,
+  })
 }
 
 async function paginateRenderedHtml(fullHtml, paper) {
@@ -111,35 +114,29 @@ async function paginateRenderedHtml(fullHtml, paper) {
     if (!doc) return []
 
     doc.open()
-    // overflow:hidden prevents the scrollbar from appearing when content is taller
-    // than the iframe, which would otherwise reduce content width ~15px on Windows
-    // and cause text to reflow differently from the final render iframes.
-    doc.write(withBase(fullHtml, '<style>html,body{overflow:hidden!important;}</style>'))
+    doc.write(withBase(fullHtml) + '<style>html,body{overflow:hidden!important;}</style>')
     doc.close()
     await waitForFrameAssets(doc)
 
-    // Use the iframe's own window so getComputedStyle reads the iframe's CSS context
-    const iframeWin = iframe.contentWindow
-    const bodyStyle = iframeWin.getComputedStyle(doc.body)
-    const paddingTop = parseFloat(bodyStyle.paddingTop || '0') || 0
-    const paddingRight = parseFloat(bodyStyle.paddingRight || '0') || 0
+    const iframeWin  = iframe.contentWindow
+    const bodyStyle  = iframeWin.getComputedStyle(doc.body)
+    const paddingTop    = parseFloat(bodyStyle.paddingTop    || '0') || 0
+    const paddingRight  = parseFloat(bodyStyle.paddingRight  || '0') || 0
     const paddingBottom = parseFloat(bodyStyle.paddingBottom || '0') || 0
-    const paddingLeft = parseFloat(bodyStyle.paddingLeft || '0') || 0
+    const paddingLeft   = parseFloat(bodyStyle.paddingLeft   || '0') || 0
     const contentHeight = paper.h - paddingTop - paddingBottom
-    const contentWidth = paper.w - paddingLeft - paddingRight
-    const bodyRect = doc.body.getBoundingClientRect()
+    const contentWidth  = paper.w - paddingLeft - paddingRight
+    const bodyRect      = doc.body.getBoundingClientRect()
     const contentBottom = Math.max(0, (doc.body.scrollHeight || 0) - paddingTop - paddingBottom)
 
-    const { head } = splitHtmlDocument(doc.documentElement.outerHTML)
-    const original = splitHtmlDocument(fullHtml)
+    const { head }   = splitHtmlDocument(doc.documentElement.outerHTML)
+    const original   = splitHtmlDocument(fullHtml)
 
     const moduleRects = Array.from(doc.querySelectorAll('.resume-module')).map((node) => {
       const rect = node.getBoundingClientRect()
-      const top = Math.max(0, rect.top - bodyRect.top - paddingTop)
-      const bottom = Math.max(top, rect.bottom - bodyRect.top - paddingTop)
       return {
-        top,
-        bottom,
+        top:  Math.max(0, rect.top  - bodyRect.top - paddingTop),
+        bottom: Math.max(0, rect.bottom - bodyRect.top - paddingTop),
         name: node.dataset.moduleName || '',
       }
     })
@@ -152,22 +149,20 @@ async function paginateRenderedHtml(fullHtml, paper) {
       .filter((v) => v > 1 && v < contentBottom - 1)
       .sort((a, b) => a - b)
 
-    // Collect block-level element rects for safe-break detection
     const blockRects = Array.from(doc.querySelectorAll(
       'h2, p, li, .entry, .entry-title, .entry-sub, .meta-row, .skills-group, .contact-item'
     )).map((el) => {
       const rect = el.getBoundingClientRect()
       return {
-        top: Math.max(0, rect.top - bodyRect.top - paddingTop),
+        top:    Math.max(0, rect.top    - bodyRect.top - paddingTop),
         bottom: Math.max(0, rect.bottom - bodyRect.top - paddingTop),
       }
     })
 
-    // Section headings measured separately for anti-orphan detection
     const headingRects = Array.from(doc.querySelectorAll('h2.section')).map((el) => {
       const rect = el.getBoundingClientRect()
       return {
-        top: Math.max(0, rect.top - bodyRect.top - paddingTop),
+        top:    Math.max(0, rect.top    - bodyRect.top - paddingTop),
         bottom: Math.max(0, rect.bottom - bodyRect.top - paddingTop),
       }
     })
@@ -175,8 +170,8 @@ async function paginateRenderedHtml(fullHtml, paper) {
     const starts = [0]
     let cursor = 0
     while (cursor < contentBottom - 1) {
-      const maxEnd = cursor + contentHeight
-      const nextForced = forcedBreaks.find((v) => v > cursor + 1 && v <= maxEnd + 1)
+      const maxEnd      = cursor + contentHeight
+      const nextForced  = forcedBreaks.find((v) => v > cursor + 1 && v <= maxEnd + 1)
 
       let next
       if (nextForced) {
@@ -184,24 +179,14 @@ async function paginateRenderedHtml(fullHtml, paper) {
       } else if (maxEnd >= contentBottom) {
         next = contentBottom
       } else {
-        // Walk back from maxEnd: among all block elements that straddle the
-        // page boundary, pick the one with the LARGEST top (innermost element,
-        // closest to maxEnd). This avoids cutting through the element while
-        // minimising the blank space left at the bottom of the page.
-        // Using Math.min (outermost) was the old behaviour; it went back to the
-        // containing .entry div and left a large gap.
         let walkBackTop = -1
         for (const r of blockRects) {
           if (r.top < maxEnd && r.bottom > maxEnd + 0.5 && r.top > cursor + 10) {
             walkBackTop = Math.max(walkBackTop, r.top)
           }
         }
-        // If no element straddles the boundary (gap between sections), fall back to
-        // the natural page boundary rather than leaving `next` undefined (→ NaN).
         next = walkBackTop > cursor + 10 ? walkBackTop : maxEnd
 
-        // Anti-orphan: if a section heading near the bottom of this page has no
-        // block content following it before the break, push the break to before it.
         for (const hr of headingRects) {
           if (hr.top <= cursor + 10 || hr.top >= next) continue
           const hasContentAfter = blockRects.some(
@@ -223,48 +208,18 @@ async function paginateRenderedHtml(fullHtml, paper) {
     const pages = []
     for (let i = 0; i < uniqueStarts.length - 1; i += 1) {
       const start = uniqueStarts[i]
-      const end = uniqueStarts[i + 1]
+      const end   = uniqueStarts[i + 1]
+      const pageContentH = Math.min(end - start, contentHeight)
+
       const moduleNames = moduleRects
         .filter((m) => m.bottom > start + 1 && m.top < end - 1)
         .map((m) => m.name)
 
-      // Clip exactly to this page's content range to prevent overlap with adjacent pages
-      const pageContentH = Math.min(end - start, contentHeight)
-
-      const sliceStyle = `
-        <style>
-          html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: white !important; }
-          .page-viewport {
-            box-sizing: border-box;
-            width: ${paper.w}px;
-            height: ${paper.h}px;
-            padding: ${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px;
-            overflow: hidden;
-            background: white;
-          }
-          .page-content {
-            width: ${contentWidth}px;
-            height: ${pageContentH}px;
-            overflow: hidden;
-            position: relative;
-          }
-          .page-canvas {
-            width: ${contentWidth}px;
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform: translateY(-${start}px);
-            transform-origin: top left;
-          }
-          .page-canvas .page-break { visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
-        </style>
-      `
-
       pages.push({
-        html: serializeHtmlPage({
-          head: `${head}${sliceStyle}`,
-          bodyTag: '<body>',
-          bodyInnerHtml: `<div class="page-viewport"><div class="page-content"><div class="page-canvas">${original.bodyContent}</div></div></div>`,
+        html: makePageHtml({
+          head, paper, paddingTop, paddingRight, paddingBottom, paddingLeft,
+          contentWidth, pageContentH, start,
+          bodyContent: original.bodyContent,
         }),
         moduleNames,
         overflow: false,
@@ -277,22 +232,23 @@ async function paginateRenderedHtml(fullHtml, paper) {
   }
 }
 
+// ─── PageFrame ────────────────────────────────────────────────────────────────
+// forwardRef so PdfPreview can access the iframe DOM node directly for capture.
 
-function PageFrame({ html, paperW, paperH }) {
+const PageFrame = forwardRef(function PageFrame({ html, paperW, paperH }, ref) {
   const iframeRef = useRef(null)
+  useImperativeHandle(ref, () => iframeRef.current)
 
   useEffect(() => {
     const frame = iframeRef.current
     if (!frame || !html) return
     const doc = frame.contentDocument
     if (!doc) return
-
     doc.open()
     doc.write(withBase(html))
     doc.close()
-
     const st = doc.createElement('style')
-    st.textContent = 'body { pointer-events:none; user-select:none; overflow:hidden; }'
+    st.textContent = 'body{pointer-events:none;user-select:none;overflow:hidden;}'
     doc.head.appendChild(st)
   }, [html, paperH])
 
@@ -307,17 +263,23 @@ function PageFrame({ html, paperW, paperH }) {
       }}
     />
   )
-}
+})
+
+// ─── PdfPreview ───────────────────────────────────────────────────────────────
 
 export default function PdfPreview() {
   const t         = useT()
   const resume    = useResumeStore((s) => s.resume)
   const debounced = useDebounce(resume, 350)
-  const [pages, setPages] = useState([])
+  const [pages, setPages]     = useState([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [zoom, setZoom]   = useState(0.6)
+  const [error, setError]     = useState('')
+  const [zoom, setZoom]       = useState(0.6)
   const [overflow, setOverflow] = useState({})
+
+  // Refs to the live preview iframes — used by downloadClientPdf to capture
+  // exactly what the user sees without re-rendering in a hidden iframe.
+  const pageFrameRefs = useRef([])
 
   const paper = PAPER[resume.customize.paper] || PAPER.A4
 
@@ -331,37 +293,56 @@ export default function PdfPreview() {
     return r.text()
   }, [resume])
 
-  // Keep a ref so the debounced effect always calls the latest fetch closure
-  // without having fetchRenderedHtml itself as a dep (which would bypass debounce).
   const fetchRef = useRef(fetchRenderedHtml)
   fetchRef.current = fetchRenderedHtml
 
-  const openPrintWindow = useCallback(async (html) => {
+  // Print: build a multi-page document from the same paginated pages the
+  // preview shows, so page breaks are identical between preview and print.
+  const openPrintWindow = useCallback(async () => {
+    if (!pages.length) throw new Error('Preview is still loading — please try again.')
     const w = window.open('', '_blank')
     if (!w) throw new Error('Popup blocked — allow popups for localhost.')
 
-    const pageCss = `
-      <style>
-        @page { size: ${resume.customize.paper}; margin: 0; }
-        html, body { margin: 0; padding: 0; background: white; }
-      </style>
-    `
+    // All pages share the same <head> CSS (template styles + minimal overrides).
+    const { head: sharedHead } = splitHtmlDocument(pages[0].html)
+
+    // Stack pages vertically; each div is exactly one paper page with
+    // page-break-after:always so the browser maps it to one printed page.
+    const allPagesHtml = pages.map((page, i) => {
+      const { bodyContent } = splitHtmlDocument(page.html)
+      const notLast = i < pages.length - 1
+      return (
+        `<div style="width:${paper.w}px;height:${paper.h}px;overflow:hidden;` +
+        (notLast ? 'page-break-after:always;break-after:page;' : '') +
+        `">${bodyContent}</div>`
+      )
+    }).join('\n')
+
+    const printHtml =
+      `<!DOCTYPE html><html><head>${sharedHead}` +
+      `<style>@page{size:${resume.customize.paper};margin:0;}` +
+      `html,body{margin:0;padding:0;background:white;}</style>` +
+      `</head><body>${allPagesHtml}</body></html>`
+
     w.document.open()
-    w.document.write(withBase(html, pageCss))
+    w.document.write(withBase(printHtml))
     w.document.close()
     await waitForFrameAssets(w.document)
     w.focus()
     w.print()
-  }, [resume.customize.paper])
+  }, [pages, paper, resume.customize.paper])
 
+  // PDF download: capture the LIVE preview iframes (already rendered by the
+  // browser) instead of creating new hidden iframes.  This eliminates the
+  // re-render step and avoids font-loading races.
   const downloadClientPdf = useCallback(async () => {
     const [{ jsPDF }, html2canvasModule] = await Promise.all([
       import('jspdf'),
       import('html2canvas'),
     ])
     const html2canvas = html2canvasModule.default
-    const renderPages = pages.length ? pages : await paginateRenderedHtml(await fetchRenderedHtml(), paper)
-    if (!renderPages.length) throw new Error('Nothing to export yet.')
+
+    if (!pages.length) throw new Error('Nothing to export yet.')
 
     const pdf = new jsPDF({
       orientation: paper.mm.w > paper.mm.h ? 'landscape' : 'portrait',
@@ -370,51 +351,48 @@ export default function PdfPreview() {
       compress: true,
     })
 
-    for (let i = 0; i < renderPages.length; i += 1) {
-      const frame = makeHiddenFrame(paper.w, paper.h)
-      document.body.appendChild(frame)
-
-      try {
-        const doc = frame.contentDocument
-        if (!doc) throw new Error('Unable to create preview frame for PDF download.')
-        doc.open()
-        doc.write(withBase(renderPages[i].html))
-        doc.close()
-        // Wait longer on the first page so fonts finish loading
-        await waitForFrameAssets(doc, i === 0 ? 400 : 150)
-
-        const canvas = await html2canvas(doc.body, {
-          backgroundColor: '#ffffff',
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          width: paper.w,
-          height: paper.h,
-          windowWidth: paper.w,
-          windowHeight: paper.h,
-          scrollX: 0,
-          scrollY: 0,
-          logging: false,
-        })
-        const imgData = canvas.toDataURL('image/jpeg', 1.0)
-        if (i > 0) pdf.addPage([paper.mm.w, paper.mm.h], paper.mm.w > paper.mm.h ? 'landscape' : 'portrait')
-        pdf.addImage(imgData, 'JPEG', 0, 0, paper.mm.w, paper.mm.h, undefined, 'NONE')
-      } finally {
-        frame.remove()
+    for (let i = 0; i < pages.length; i += 1) {
+      const frame = pageFrameRefs.current[i]
+      if (!frame || !frame.contentDocument?.body) {
+        throw new Error(`Page ${i + 1} is not ready — wait for the preview to finish loading.`)
       }
+
+      const doc = frame.contentDocument
+      // First page may still be finishing font loads; give it a moment.
+      if (i === 0) await waitForFrameAssets(doc, 300)
+
+      const canvas = await html2canvas(doc.body, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        width:        paper.w,
+        height:       paper.h,
+        windowWidth:  paper.w,
+        windowHeight: paper.h,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
+      })
+
+      const imgData = canvas.toDataURL('image/jpeg', 1.0)
+      if (i > 0) pdf.addPage(
+        [paper.mm.w, paper.mm.h],
+        paper.mm.w > paper.mm.h ? 'landscape' : 'portrait',
+      )
+      pdf.addImage(imgData, 'JPEG', 0, 0, paper.mm.w, paper.mm.h, undefined, 'NONE')
     }
 
     pdf.save(`${resume.title || 'resume'}.pdf`)
-  }, [fetchRenderedHtml, pages, paper, resume.title])
+  }, [pages, paper, resume.title])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError('')
-
     ;(async () => {
       try {
-        const txt = await fetchRef.current()
+        const txt   = await fetchRef.current()
         const paged = await paginateRenderedHtml(txt, paper)
         if (cancelled) return
         setPages(paged)
@@ -425,7 +403,6 @@ export default function PdfPreview() {
         if (!cancelled) setLoading(false)
       }
     })()
-
     return () => { cancelled = true }
   }, [debounced, paper])
 
@@ -445,8 +422,7 @@ export default function PdfPreview() {
   const printPdf = async () => {
     setError('')
     try {
-      const html = await fetchRenderedHtml()
-      await openPrintWindow(html)
+      await openPrintWindow()
     } catch (e) {
       setError('Print-to-PDF failed: ' + String(e.message || e))
     }
@@ -470,7 +446,7 @@ export default function PdfPreview() {
             <ZoomOut size={14}/>
           </button>
           <span className="tabular-nums text-xs text-gray-500 w-10 text-center font-mono">
-            {Math.round(zoom*100)}%
+            {Math.round(zoom * 100)}%
           </span>
           <button onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700" title="Zoom in">
@@ -548,6 +524,7 @@ export default function PdfPreview() {
                     overflow: 'hidden',
                   }}>
                   <PageFrame
+                    ref={(el) => { pageFrameRefs.current[i] = el }}
                     html={page.html}
                     paperW={paper.w}
                     paperH={paper.h}

@@ -91,6 +91,11 @@ const STRINGS = {
     'profile.use_in_resume':    'Use in resume',
     'profile.add_entry':        'Add entry',
     // ── Module list ───────────────────────────────────────────────────────────
+    'module.new_module':        'New Module',
+    'module.presets':           'Quick Add',
+    'module.custom':            'Custom',
+    'module.create':            'Create',
+    'module.name_ph':           'Module name',
     'module.add_section':       'Add section',
     'module.all_sections':      'All sections',
     'module.new_entry':         'New entry',
@@ -364,6 +369,11 @@ const STRINGS = {
     'profile.use_in_resume':    '添加到简历',
     'profile.add_entry':        '添加条目',
     // ── Module list ───────────────────────────────────────────────────────────
+    'module.new_module':        '新建模块',
+    'module.presets':           '快速添加',
+    'module.custom':            '自定义',
+    'module.create':            '创建',
+    'module.name_ph':           '模块名称',
     'module.add_section':       '添加模块',
     'module.all_sections':      '返回全部',
     'module.new_entry':         '新建',

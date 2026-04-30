@@ -234,10 +234,10 @@ export const useResumeStore = create((set, get) => ({
     }),
 
   // --------- modules ---------
-  addModule: (type = 'custom') =>
+  addModule: (type = 'custom', overrides = {}) =>
     set((s) => {
       const bp = MODULE_BLUEPRINTS[type] || MODULE_BLUEPRINTS.custom
-      const mod = { id: uid(), type, name: bp.name, icon: bp.icon, hidden: false, entries: [] }
+      const mod = { id: uid(), type, name: bp.name, icon: bp.icon, hidden: false, entries: [], ...overrides }
       return { resume: { ...s.resume, modules: [...s.resume.modules, mod] }, activeModuleId: mod.id }
     }),
 
