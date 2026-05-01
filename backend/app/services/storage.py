@@ -20,11 +20,37 @@ def _now() -> str:
 
 # ---------------- Resumes ----------------
 
+def _is_blank_resume(data: dict[str, Any]) -> bool:
+    title = (data.get("title") or "").strip()
+    if title not in {"", "Untitled Resume"}:
+        return False
+
+    personal = data.get("personal") or {}
+    personal_fields = (
+        "full_name", "job_title", "email", "phone", "location", "website",
+        "linkedin", "github", "wechat", "qq", "date_of_birth", "summary_line", "photo_url",
+    )
+    if any(str(personal.get(field) or "").strip() for field in personal_fields):
+        return False
+    if any(str((item or {}).get("value") or "").strip() for item in (personal.get("extra_fields") or [])):
+        return False
+
+    modules = data.get("modules") or []
+    for module in modules:
+        if module.get("type") == "personal_details":
+            continue
+        if module.get("entries"):
+            return False
+
+    return True
+
 def list_resumes() -> list[dict[str, Any]]:
     all_items: list[dict[str, Any]] = []
     for p in sorted(RESUMES_DIR.glob("*.json")):
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
+            if _is_blank_resume(data):
+                continue
             all_items.append({
                 "id": data.get("id"),
                 "title": data.get("title") or "Untitled Resume",
