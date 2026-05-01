@@ -48,6 +48,19 @@ You will need to install a few system dependencies for PDF parsing and rendering
 
 *Note: Requires **Python 3.10+** and **Node.js 18+**.*
 
+**Windows (recommended):**
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-windows-deps.ps1
+```
+
+This installs:
+- `GTK3 Runtime` for WeasyPrint PDF export
+- `Tesseract OCR` for image / scanned PDF OCR
+- `Poppler` for PDF-to-image extraction
+- `chi_sim` Tesseract language data for Simplified Chinese OCR
+
+If PDF export still fails on Windows, restart the terminal and visit `http://localhost:8000/api/diagnostics`.
+
 #### 2. Start the Application (One Command)
 Run the startup script from the project root:
 ```bat
@@ -83,6 +96,16 @@ OPENAI_API_KEY=sk-...
 # OPENAI_BASE_URL=http://localhost:11434/v1  # optional, for Ollama/LM Studio
 OPENAI_MODEL=gpt-4o-mini
 ```
+
+#### 5. Save as PDF
+The preview is the source of truth for export. To save a PDF that matches what you see:
+
+1. Open the preview pane on the right.
+2. Click `Print & Save`.
+3. In the browser print dialog, choose `Save as PDF`.
+4. Keep page scale at the browser default unless you intentionally want a different output.
+
+If a browser adds headers, footers, or margins, turn them off in the print dialog for the closest match.
 
 ### 🛠️ Architecture & API
 - **Frontend**: React + Vite + Zustand + TailwindCSS
@@ -126,6 +149,19 @@ OPENAI_MODEL=gpt-4o-mini
 
 *注意：环境需要 **Python 3.10+** 及 **Node.js 18+**。*
 
+**Windows 推荐安装方式：**
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-windows-deps.ps1
+```
+
+该脚本会自动安装：
+- `GTK3 Runtime`：解决 WeasyPrint 导出 PDF 所需的原生库
+- `Tesseract OCR`：用于图片 / 扫描版 PDF 的 OCR 识别
+- `Poppler`：用于 PDF 转图片解析
+- `chi_sim` 中文语言包：用于简体中文 OCR
+
+如果 Windows 下安装后仍无法导出 PDF，请重启终端后访问 `http://localhost:8000/api/diagnostics` 检查依赖状态。
+
 #### 2. 一键启动
 在项目根目录下运行启动脚本：
 ```bat
@@ -161,6 +197,16 @@ OPENAI_API_KEY=sk-...
 # OPENAI_BASE_URL=http://localhost:11434/v1  # 可选，用于 Ollama/LM Studio
 OPENAI_MODEL=gpt-4o-mini
 ```
+
+#### 5. 另存为 PDF
+预览页就是导出的基准。要保存与预览尽量一致的 PDF，请按下面操作：
+
+1. 打开右侧预览区。
+2. 点击 `Print & Save`。
+3. 在浏览器打印窗口中选择 `Save as PDF`。
+4. 除非你明确想改变输出，否则请保持浏览器默认缩放。
+
+如果浏览器打印窗口默认带有页眉、页脚或额外边距，请在打印设置中关闭它们，以获得最接近预览的结果。
 
 ### 🛠️ 架构与 API
 - **前端技术栈**: React + Vite + Zustand + TailwindCSS

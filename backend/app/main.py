@@ -16,6 +16,47 @@ DATA_DIR = BASE_DIR / "data"
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 
+
+def _prepend_to_path(path: Path) -> None:
+    if not path.exists():
+        return
+    current = os.environ.get("PATH", "")
+    parts = current.split(os.pathsep) if current else []
+    target = str(path)
+    if target not in parts:
+        os.environ["PATH"] = os.pathsep.join([target, *parts]) if current else target
+
+
+def _bootstrap_native_tools() -> None:
+    """Make common Windows native dependencies discoverable without manual PATH edits."""
+    if os.name != "nt":
+        return
+
+    candidates = [
+        Path(r"C:\Program Files\GTK3-Runtime Win64\bin"),
+        Path(r"C:\Program Files\Tesseract-OCR"),
+    ]
+
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        winget_packages = Path(local_app_data) / "Microsoft" / "WinGet" / "Packages"
+        if winget_packages.exists():
+            candidates.extend(
+                winget_packages.glob(
+                    r"oschwartz10612.Poppler_Microsoft.Winget.Source_8wekyb3d8bbwe\poppler-*\Library\bin"
+                )
+            )
+
+    for candidate in candidates:
+        _prepend_to_path(candidate)
+
+    repo_tessdata = BASE_DIR / "tessdata"
+    if repo_tessdata.exists():
+        os.environ.setdefault("TESSDATA_PREFIX", str(repo_tessdata))
+
+
+_bootstrap_native_tools()
+
 app = FastAPI(title="Resume Studio API", version="0.1.0")
 
 app.add_middleware(

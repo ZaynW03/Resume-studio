@@ -3,8 +3,8 @@ import { useResumeStore } from '../../store/resumeStore'
 import { api } from '../../api'
 import { Button } from './Fields'
 import {
-  Upload, FilePlus2, Save, Languages, Loader2,
-  ChevronDown, User, FileEdit, Palette, Sparkles,
+  Upload, FilePlus2, Languages, Loader2,
+  ChevronDown, User, FileEdit, Palette, Sparkles, Trash2,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 
@@ -20,7 +20,6 @@ export default function TopBar({ onImportParsed }) {
   const resume       = useResumeStore((s) => s.resume)
   const savedAt      = useResumeStore((s) => s.savedAt)
   const saving       = useResumeStore((s) => s.saving)
-  const setTitle     = useResumeStore((s) => s.setTitle)
   const setLang      = useResumeStore((s) => s.setLanguage)
   const save         = useResumeStore((s) => s.save)
   const reset        = useResumeStore((s) => s.resetResume)
@@ -71,6 +70,17 @@ export default function TopBar({ onImportParsed }) {
   const onNew = () => {
     if (!confirm(t('topbar.new_confirm'))) return
     reset()
+  }
+
+  const onDeleteResume = async (resumeId) => {
+    if (!confirm(t('topbar.delete_confirm'))) return
+    try {
+      await api.deleteResume(resumeId)
+      if (resume.id === resumeId) reset()
+      await refreshList()
+    } catch (err) {
+      alert(`${t('topbar.delete')}: ${err.message}`)
+    }
   }
 
   return (
@@ -149,20 +159,51 @@ export default function TopBar({ onImportParsed }) {
               {resumes.length === 0 && (
                 <div className="px-3 py-2 text-xs text-gray-400">{t('topbar.no_saved')}</div>
               )}
-              {resumes.map((r) => (
-                <button
+              {resumes.map((r) => {
+                const isCurrent = resume.id === r.id
+                return (
+                <div
                   key={r.id}
-                  onClick={() => { load(r.id); setMenuOpen(false) }}
-                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex flex-col"
+                  className={[
+                    'px-2 py-1.5 flex items-center gap-2 rounded-lg mx-1',
+                    isCurrent ? 'bg-indigo-50' : 'hover:bg-gray-50',
+                  ].join(' ')}
                 >
-                  <span className="font-medium truncate">{r.title}</span>
-                  {r.updated_at && (
-                    <span className="text-gray-400 text-[10px]">
-                      {new Date(r.updated_at).toLocaleString()}
+                  <button
+                    onClick={() => { load(r.id); setMenuOpen(false) }}
+                    className="flex-1 min-w-0 text-left px-1 py-0.5 text-xs text-gray-700 flex flex-col"
+                  >
+                    <span className="font-medium truncate flex items-center gap-2">
+                      <span className={isCurrent ? 'text-indigo-700' : ''}>{r.title}</span>
+                      {isCurrent && (
+                        <span className="inline-flex items-center rounded-full bg-indigo-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-indigo-700">
+                          {t('topbar.current')}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </button>
-              ))}
+                    {r.updated_at && (
+                      <span className={`text-[10px] ${isCurrent ? 'text-indigo-500' : 'text-gray-400'}`}>
+                        {new Date(r.updated_at).toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteResume(r.id).then(() => {
+                        if (resume.id !== r.id) return
+                        setMenuOpen(false)
+                      })
+                    }}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
+                    title={t('topbar.delete')}
+                    aria-label={t('topbar.delete')}
+                  >
+                    <Trash2 size={13}/>
+                  </button>
+                </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -181,10 +222,6 @@ export default function TopBar({ onImportParsed }) {
           className="hidden"
           onChange={onUpload}
         />
-
-        <Button onClick={() => save().then(refreshList)}>
-          <Save size={13}/> {t('topbar.save')}
-        </Button>
       </div>
     </div>
   )

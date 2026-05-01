@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { useResumeStore } from '../../store/resumeStore'
 import {
-  Download, Loader2, ZoomIn, ZoomOut, Maximize2, AlertTriangle, Printer,
+  Loader2, ZoomIn, ZoomOut, Maximize2, AlertTriangle, Printer,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 
@@ -114,7 +114,7 @@ async function paginateRenderedHtml(fullHtml, paper) {
     if (!doc) return []
 
     doc.open()
-    doc.write(withBase(fullHtml) + '<style>html,body{overflow:hidden!important;}</style>')
+    doc.write(withBase(fullHtml).replace('</head>', '<style>html,body{overflow:hidden!important;}</style></head>'))
     doc.close()
     await waitForFrameAssets(doc)
 
@@ -332,60 +332,6 @@ export default function PdfPreview() {
     w.print()
   }, [pages, paper, resume.customize.paper])
 
-  // PDF download: capture the LIVE preview iframes (already rendered by the
-  // browser) instead of creating new hidden iframes.  This eliminates the
-  // re-render step and avoids font-loading races.
-  const downloadClientPdf = useCallback(async () => {
-    const [{ jsPDF }, html2canvasModule] = await Promise.all([
-      import('jspdf'),
-      import('html2canvas'),
-    ])
-    const html2canvas = html2canvasModule.default
-
-    if (!pages.length) throw new Error('Nothing to export yet.')
-
-    const pdf = new jsPDF({
-      orientation: paper.mm.w > paper.mm.h ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: [paper.mm.w, paper.mm.h],
-      compress: true,
-    })
-
-    for (let i = 0; i < pages.length; i += 1) {
-      const frame = pageFrameRefs.current[i]
-      if (!frame || !frame.contentDocument?.body) {
-        throw new Error(`Page ${i + 1} is not ready — wait for the preview to finish loading.`)
-      }
-
-      const doc = frame.contentDocument
-      // First page may still be finishing font loads; give it a moment.
-      if (i === 0) await waitForFrameAssets(doc, 300)
-
-      const canvas = await html2canvas(doc.body, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        width:        paper.w,
-        height:       paper.h,
-        windowWidth:  paper.w,
-        windowHeight: paper.h,
-        scrollX: 0,
-        scrollY: 0,
-        logging: false,
-      })
-
-      const imgData = canvas.toDataURL('image/jpeg', 1.0)
-      if (i > 0) pdf.addPage(
-        [paper.mm.w, paper.mm.h],
-        paper.mm.w > paper.mm.h ? 'landscape' : 'portrait',
-      )
-      pdf.addImage(imgData, 'JPEG', 0, 0, paper.mm.w, paper.mm.h, undefined, 'NONE')
-    }
-
-    pdf.save(`${resume.title || 'resume'}.pdf`)
-  }, [pages, paper, resume.title])
-
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -409,15 +355,6 @@ export default function PdfPreview() {
   const setOverflowFor = useCallback((i, v) => {
     setOverflow((prev) => prev[i] === v ? prev : { ...prev, [i]: v })
   }, [])
-
-  const downloadPdf = async () => {
-    setError('')
-    try {
-      await downloadClientPdf()
-    } catch (e) {
-      setError('PDF export failed: ' + String(e.message || e))
-    }
-  }
 
   const printPdf = async () => {
     setError('')
@@ -458,13 +395,9 @@ export default function PdfPreview() {
           </button>
           <div className="w-px h-5 bg-gray-200 mx-2"/>
           <button onClick={printPdf}
-            className="btn-secondary"
-            title="Print to PDF using browser's print dialog">
-            <Printer size={12}/> Print
-          </button>
-          <button onClick={downloadPdf}
-            className="btn-primary">
-            <Download size={12}/> PDF
+            className="btn-primary"
+            title="Print or save the current preview as PDF">
+            <Printer size={12}/> Print & Save
           </button>
         </div>
       </div>
